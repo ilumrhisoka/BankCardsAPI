@@ -4,41 +4,30 @@
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                                    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
-
-    <changeSet id="create-cards-table" author="ilumrhisoka">
-        <createTable tableName="t_cards">
+    <changeSet id="create-token-table" author="ilumrhisoka">
+        <comment>Creating t_token table for JWT tokens</comment>
+        <createTable tableName="t_token">
             <column name="id" type="BIGINT" autoIncrement="true">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column name="card_number" type="VARCHAR(100)">
+            <column name="access_token" type="VARCHAR(500)">
                 <constraints nullable="false"/>
             </column>
-            <column name="card_holder" type="VARCHAR(100)">
-                <constraints nullable="false"/>
-            </column>
-            <column name="expiry_date" type="DATE">
-                <constraints nullable="false"/>
-            </column>
-            <column name="card_status" type="VARCHAR(20)">
-                <constraints nullable="false"/>
-            </column>
-            <column name="balance" type="DECIMAL(15, 2)">
+            <column name="refresh_token" type="VARCHAR(500)"/>
+            <column name="logged_out" type="BOOLEAN" defaultValueBoolean="false">
                 <constraints nullable="false"/>
             </column>
             <column name="user_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
-            <column name="created_at" type="TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
-            <column name="updated_at" type="TIMESTAMP"/>
         </createTable>
-        <addForeignKeyConstraint baseTableName="t_cards"
+        <addForeignKeyConstraint baseTableName="t_token"
                                  baseColumnNames="user_id"
                                  referencedTableName="t_users"
                                  referencedColumnNames="id"
-                                 constraintName="fk_card_user"/>
-        <createIndex tableName="t_cards" indexName="idx_card_user_id">
+                                 constraintName="fk_token_user"/>
+
+        <createIndex tableName="t_token" indexName="idx_token_user_id">
             <column name="user_id"/>
         </createIndex>
     </changeSet>
