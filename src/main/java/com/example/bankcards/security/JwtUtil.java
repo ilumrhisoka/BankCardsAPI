@@ -5,9 +5,11 @@ import java.security.Key;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import org.springframework.stereotype.Component;
 
 import java.util.Date;
 
+@Component
 public class JwtUtil {
     private static final String SECRET_KEY = "S/cZl4iy66cBZmSuXNSNHBbjSMjdP8bO2F2+EMbBW1U=";
     private static final long EXPIRATION_TIME = 3600000;
