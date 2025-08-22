@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="create-transfers-table" author="your_name_or_initials">
+        <createTable tableName="t_transfers">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="from_card_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="to_card_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount" type="DECIMAL(15, 2)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="transfer_date" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="t_transfers"
+                                 baseColumnNames="from_card_id"
+                                 referencedTableName="t_cards"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_transfer_from_card"/>
+        <addForeignKeyConstraint baseTableName="t_transfers"
+                                 baseColumnNames="to_card_id"
+                                 referencedTableName="t_cards"
+                                 referencedColumnNames="id"
+                                 constraintName="fk_transfer_to_card"/>
+        <createIndex tableName="t_transfers" indexName="idx_transfer_from_card_id">
+            <column name="from_card_id"/>
+        </createIndex>
+        <createIndex tableName="t_transfers" indexName="idx_transfer_to_card_id">
+            <column name="to_card_id"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
