@@ -16,7 +16,9 @@ import java.util.Optional;
 @Repository
 public interface CardRepository extends JpaRepository<Card, Long> {
     @Query("SELECT c FROM Card c WHERE c.user.username = :username")
-    List<Card> findByUserUsername(@Param("username") String username);
+    Page<Card> findByUserUsernamePageable(@Param("username") String username, Pageable pageable);
+
+    List<Card> findByUserUsername(String username);
 
     Optional<Card> findByCardNumber(String cardNumber);
 
@@ -24,7 +26,7 @@ public interface CardRepository extends JpaRepository<Card, Long> {
     Page<Card> findByCardStatus(@Param("status") CardStatus status, Pageable pageable);
 
     @Query("SELECT c FROM Card c WHERE c.user.id = :userId")
-    List<Card> findByUserId(@Param("userId") Long userId);
+    Page<Card> findByUserId(@Param("userId") Long userId, Pageable pageable);
 
     @Query("SELECT COUNT(c) FROM Card c WHERE c.user.username = :username AND c.cardStatus = 'ACTIVE'")
     Long countActiveCardsByUsername(@Param("username") String username);

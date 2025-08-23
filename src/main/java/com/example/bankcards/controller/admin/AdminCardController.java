@@ -18,9 +18,10 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/admin/cards")
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-public class CardController {
+public class AdminCardController {
 
     private final CardService cardService;
+
 
     @PostMapping
     public ResponseEntity<CardResponseDto> createCard(@Valid @RequestBody CardCreateRequest request){
@@ -64,4 +65,6 @@ public class CardController {
         CardResponseDto card = cardService.activateCard(id);
         return ResponseEntity.ok(card);
     }
+
+
 }

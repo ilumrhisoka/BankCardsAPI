@@ -5,15 +5,17 @@ import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.enums.CardStatus;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.UserRepository;
+import com.example.bankcards.util.CardDtoMapper;
 import com.example.bankcards.util.CardMaskingUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,15 +23,9 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class UserCardService {
 
+    private final CardDtoMapper cardDtoMapper;
     private final CardRepository cardRepository;
-    private final UserRepository userRepository;
 
-    public List<CardResponseDto> getUserCards(String username) {
-        List<Card> cards = cardRepository.findByUserUsername(username);
-        return cards.stream()
-                .map(this::mapToMaskedResponseDto)
-                .collect(Collectors.toList());
-    }
     public BigDecimal getTotalBalance(String username) {
         List<Card> cards = cardRepository.findByUserUsername(username);
         return cards.stream()
@@ -37,6 +33,7 @@ public class UserCardService {
                 .map(Card::getBalance)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
+
     @Transactional
     public void requestUnblock(Long cardId, String username) {
         Card card = cardRepository.findById(cardId)
@@ -50,28 +47,32 @@ public class UserCardService {
         }
         log.info("User {} requested unblock for card {}", username, CardMaskingUtil.maskCardNumber(card.getCardNumber()));
     }
-    public CardResponseDto getUserCard(Long cardId, String username) {
+
+    @Transactional
+    public void requestBlock(Long cardId, String username) {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new RuntimeException("Card not found"));
 
         if (!card.getUser().getUsername().equals(username)) {
             throw new RuntimeException("Access denied: Card doesn't belong to user");
         }
-
-        return mapToMaskedResponseDto(card);
+        if (card.getCardStatus() == CardStatus.BLOCKED) {
+            throw new RuntimeException("Card is blocked");
+        }
+        log.info("User {} requested block for card {}", username, CardMaskingUtil.maskCardNumber(card.getCardNumber()));
     }
 
-    private CardResponseDto mapToMaskedResponseDto(Card card) {
-        CardResponseDto dto = new CardResponseDto();
-        dto.setId(card.getId());
-        dto.setCardNumber(CardMaskingUtil.maskCardNumber(card.getCardNumber()));
-        dto.setCardHolder(card.getCardHolder());
-        dto.setExpiryDate(card.getExpiryDate());
-        dto.setCardStatus(card.getCardStatus());
-        dto.setBalance(card.getBalance());
-        dto.setUsername(card.getUser().getUsername());
-        dto.setCreatedAt(card.getCreatedAt());
-        dto.setUpdatedAt(card.getUpdatedAt());
-        return dto;
+    public Page<CardResponseDto> getUserCards(String username, Pageable pageable) {
+        Page<Card> cardsPage = cardRepository.findByUserUsernamePageable(username, pageable);
+        return cardsPage.map(cardDtoMapper::toCardResponseDto);
+    }
+
+    public CardResponseDto getUserCardById(Long cardId, String username) {
+        Card card = cardRepository.findById(cardId)
+                .orElseThrow(() -> new RuntimeException("Card not found"));
+        if(!card.getUser().getUsername().equals(username)) {
+            throw new RuntimeException("Access denied: Card doesn't belong to user");
+        }
+        return cardDtoMapper.toCardResponseDto(card);
     }
 }

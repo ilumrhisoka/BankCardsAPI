@@ -20,6 +20,4 @@ public class CardResponseDto {
     private CardStatus cardStatus;
     private BigDecimal balance;
     private String username;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }

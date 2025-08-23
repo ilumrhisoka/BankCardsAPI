@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.sql.Ref;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,14 +34,18 @@ public class AuthService {
             if(passwordEncoder.matches(password, user.getPassword())) {
                 String token = jwtUtil.generateToken(user.getUsername(), user.getRole().name());
                 RefreshToken refreshToken = createRefreshToken(user);
+                refreshTokenRepository.save(refreshToken);
+                log.info("Login Success");
                 return new AuthResponseDto(token, refreshToken.getToken());
             }
         }
+        log.info("Username not found");
         return null;
     }
 
     public AuthResponseDto register(String username,String email, String password) {
         if(userRepository.findByUsername(username).isPresent()) {
+            log.info("Username already exists");
             return null;
         }
         String encodedPassword = passwordEncoder.encode(password);
@@ -50,6 +53,7 @@ public class AuthService {
         userRepository.save(newUser);
         String token = jwtUtil.generateToken(newUser.getUsername(), newUser.getRole().name());
         RefreshToken refreshToken = createRefreshToken(newUser);
+        log.info("Register Success");
         return new AuthResponseDto(token, refreshToken.getToken());
     }
 
@@ -58,7 +62,7 @@ public class AuthService {
         refreshToken.setUser(user);
         refreshToken.setToken(UUID.randomUUID().toString());
         refreshToken.setExpiryDate(Instant.now().plusMillis(jwtUtil.getRefreshTokenExpiration()));
-
+        log.info("Refresh Token created");
         return refreshTokenRepository.save(refreshToken);
     }
 
@@ -79,6 +83,7 @@ public class AuthService {
         String newAccessToken = jwtUtil.generateToken(user.getUsername(), user.getRole().name());
         refreshTokenRepository.delete(refreshToken);
         RefreshToken newRefreshToken = createRefreshToken(user);
+        log.info("Access Token refreshed");
 
         return new AuthResponseDto(newAccessToken, newRefreshToken.getToken());
     }
