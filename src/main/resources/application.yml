@@ -21,4 +21,4 @@ app:
     username: adminUser
     password: superSecretAdminPassword
 encryption:
-  key: MySecretEncryptionKey123456789012
+  key: MySecretEncryptionKey12345678901
