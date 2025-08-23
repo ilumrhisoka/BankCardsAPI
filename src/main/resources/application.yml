@@ -16,3 +16,9 @@ jwt:
     expiration: 900000
   refresh-token:
     expiration: 2592000000
+app:
+  admin:
+    username: adminUser
+    password: superSecretAdminPassword
+encryption:
+  key: MySecretEncryptionKey123456789012

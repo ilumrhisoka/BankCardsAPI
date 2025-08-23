@@ -2,6 +2,7 @@ package com.example.bankcards.entity;
 
 import com.example.bankcards.entity.enums.Role;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -29,6 +30,7 @@ public class User{
     @Column(unique = true, nullable = false, length = 50)
     private String username;
 
+    @Email
     @Column(unique = true, nullable = false, length = 100)
     private String email;
 
