@@ -9,6 +9,7 @@ import com.example.bankcards.entity.enums.TransferStatus;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.TransferRepository;
 import com.example.bankcards.util.CardMaskingUtil;
+import com.example.bankcards.util.TransferDtoMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,29 +29,31 @@ public class TransferService {
     private final CardEncryptionService cardEncryptionService;
     private final TransferRepository transferRepository;
     private final CardRepository cardRepository;
+    private final TransferDtoMapper transferDtoMapper;
 
     @Transactional
     public TransferResponseDto createTransfer(TransferRequest request, String username) {
         Card fromCard = cardRepository.findById(request.getFromCardId())
                 .orElseThrow(() -> new RuntimeException("From card not found"));
 
+
         if (!fromCard.getUser().getUsername().equals(username)) {
             throw new RuntimeException("Access denied: Card doesn't belong to user");
         }
-
         if (fromCard.getCardStatus() != CardStatus.ACTIVE) {
             throw new RuntimeException("From card is not active");
         }
-
         Card toCard = findCardByNumber(request.getToCardNumber());
+
         if (toCard == null) {
             throw new RuntimeException("To card not found");
         }
-
+        if (!toCard.getUser().getUsername().equals(username)) {
+            throw new RuntimeException("Access denied: Target card doesn't belong to the same user");
+        }
         if (toCard.getCardStatus() != CardStatus.ACTIVE) {
             throw new RuntimeException("To card is not active");
         }
-
         if (fromCard.getId().equals(toCard.getId())) {
             throw new RuntimeException("Cannot transfer to the same card");
         }
@@ -80,7 +83,7 @@ public class TransferService {
                     CardMaskingUtil.maskCardNumber(toCard.getCardNumber()),
                     request.getAmount());
 
-            return mapToResponseDto(savedTransfer, username);
+            return transferDtoMapper.toTransferResponseDto(savedTransfer, username);
 
         } catch (Exception e) {
             log.error("Transfer failed: {}", e.getMessage());
@@ -94,7 +97,6 @@ public class TransferService {
 
             Transfer savedTransfer = transferRepository.save(failedTransfer);
 
-
             throw new RuntimeException("Transfer failed: " + e.getMessage());
         }
     }
@@ -102,7 +104,7 @@ public class TransferService {
     public List<TransferResponseDto> getUserTransfers(String username) {
         List<Transfer> transfers = transferRepository.findByUserUsername(username);
         return transfers.stream()
-                .map(transfer -> mapToResponseDto(transfer, username))
+                .map(transfer -> transferDtoMapper.toTransferResponseDto(transfer, username))
                 .collect(Collectors.toList());
     }
 
@@ -116,7 +118,7 @@ public class TransferService {
 
         List<Transfer> transfers = transferRepository.findByCardId(cardId);
         return transfers.stream()
-                .map(transfer -> mapToResponseDto(transfer, username))
+                .map(transfer -> transferDtoMapper.toTransferResponseDto(transfer, username))
                 .collect(Collectors.toList());
     }
 
@@ -131,22 +133,7 @@ public class TransferService {
             throw new RuntimeException("Access denied: User is not participant of this transfer");
         }
 
-        return mapToResponseDto(transfer, username);
-    }
-
-    private TransferResponseDto mapToResponseDto(Transfer transfer, String username) {
-        TransferResponseDto dto = new TransferResponseDto();
-        dto.setId(transfer.getId());
-        dto.setFromCardNumber(cardEncryptionService.getMaskedCardNumber(transfer.getFromCard().getCardNumber()));
-        dto.setToCardNumber(cardEncryptionService.getMaskedCardNumber(transfer.getToCard().getCardNumber()));
-        dto.setAmount(transfer.getAmount());
-        dto.setStatus(transfer.getStatus());
-        dto.setTransferDate(transfer.getTransferDate());
-        dto.setCreatedAt(transfer.getCreatedAt());
-
-        dto.setOutgoing(transfer.getFromCard().getUser().getUsername().equals(username));
-
-        return dto;
+        return transferDtoMapper.toTransferResponseDto(transfer, username);
     }
 
     private Card findCardByNumber(String plainCardNumber) {
