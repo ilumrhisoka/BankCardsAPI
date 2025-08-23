@@ -3,33 +3,29 @@
         xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
-                                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
-    <changeSet id="create-token-table" author="ilumrhisoka">
-        <comment>Creating t_token table for JWT tokens</comment>
-        <createTable tableName="t_token">
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+    <changeSet id="1-create-refresh_tokens-table" author="ilumrhisoka">
+        <comment>Создание таблицы для хранения Refresh Token</comment>
+        <createTable tableName="refresh_tokens">
             <column name="id" type="BIGINT" autoIncrement="true">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column name="access_token" type="VARCHAR(500)">
-                <constraints nullable="false"/>
+            <column name="token" type="VARCHAR(255)">
+                <constraints nullable="false" unique="true"/>
             </column>
-            <column name="refresh_token" type="VARCHAR(500)"/>
-            <column name="logged_out" type="BOOLEAN" defaultValueBoolean="false">
+            <column name="expiry_date" type="TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
             <column name="user_id" type="BIGINT">
                 <constraints nullable="false"/>
             </column>
         </createTable>
-        <addForeignKeyConstraint baseTableName="t_token"
+        <addForeignKeyConstraint baseTableName="refresh_tokens"
                                  baseColumnNames="user_id"
                                  referencedTableName="t_users"
                                  referencedColumnNames="id"
-                                 constraintName="fk_token_user"/>
-
-        <createIndex tableName="t_token" indexName="idx_token_user_id">
-            <column name="user_id"/>
-        </createIndex>
+                                 constraintName="fk_refresh_token_user"
+                                 onDelete="CASCADE"/>
     </changeSet>
 
 </databaseChangeLog>

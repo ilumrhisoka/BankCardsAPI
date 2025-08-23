@@ -2,31 +2,44 @@ package com.example.bankcards.security;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.Key;
 
+import com.example.bankcards.dto.auth.AuthResponseDto;
+import com.example.bankcards.entity.RefreshToken;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
 
 @Component
 public class JwtUtil {
-    private static final String SECRET_KEY = "S/cZl4iy66cBZmSuXNSNHBbjSMjdP8bO2F2+EMbBW1U=";
-    private static final long EXPIRATION_TIME = 3600000;
+    @Value("${jwt.secret}")
+    private String secret;
+    @Value("${jwt.access-token.expiration}")
+    private long accessTokenExpiration;
+    @Value("${jwt.refresh-token.expiration}")
+    private long refreshTokenExpiration;
     private static final SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS256;
-    private static final Key key = new SecretKeySpec(SECRET_KEY.getBytes(), SIGNATURE_ALGORITHM.getJcaName());
+    private Key key;
 
-    public static String generateToken(String username, String role) {
+    @PostConstruct
+    public void init() {
+        this.key = new SecretKeySpec(secret.getBytes(), SIGNATURE_ALGORITHM.getJcaName());
+    }
+
+    public String generateToken(String username, String role) {
         return Jwts.builder()
                 .setSubject(username)
                 .claim("role", role)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpiration))
                 .signWith(SIGNATURE_ALGORITHM, key)
                 .compact();
     }
 
-    public static boolean validateToken(String token) {
+    public boolean validateToken(String token) {
         try {
             Jwts.parser()
                     .setSigningKey(key)
@@ -38,7 +51,7 @@ public class JwtUtil {
         }
     }
 
-    public static String getUsernameFromToken(String token) {
+    public String getUsernameFromToken(String token) {
         return Jwts.parser()
                 .setSigningKey(key)
                 .build()
@@ -47,7 +60,7 @@ public class JwtUtil {
                 .getSubject();
     }
 
-    public static String getRoleFromToken(String token) {
+    public String getRoleFromToken(String token) {
         Claims claims = Jwts.parser()
                 .setSigningKey(key)
                 .build()
@@ -55,4 +68,10 @@ public class JwtUtil {
                 .getBody();
         return claims.get("role", String.class);
     }
+
+    public long getRefreshTokenExpiration() {
+        return refreshTokenExpiration;
+    }
+
+
 }

@@ -10,3 +10,9 @@ spring:
       ddl-auto: validate
 security:
   expiration-time: 3600000
+jwt:
+  secret: S/cZl4iy66cBZmSuXNSNHBbjSMjdP8bO2F2+EMbBW1U=
+  access-token:
+    expiration: 900000
+  refresh-token:
+    expiration: 2592000000

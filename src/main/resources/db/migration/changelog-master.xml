@@ -7,5 +7,6 @@
     <include file="db/migration/changes/001-create-users-table.xml"/>
     <include file="db/migration/changes/002-create-cards-table.xml"/>
     <include file="db/migration/changes/003-create-transfers-table.xml"/>
+    <include file="db/migration/changes/004-create-refresh-token-table.xml"/>
 
 </databaseChangeLog>
