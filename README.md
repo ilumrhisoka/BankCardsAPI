@@ -30,10 +30,9 @@
 
 *   **Backend:**
     *   Java 17
-    *   Spring Boot 3.x
-    *   Spring Data JPA (Hibernate)
-    *   Spring Security (JWT Authentication)
-    *   Lombok
+    *   Spring Boot 3
+    *   Spring Data JPA 
+    *   Spring Security 
     *   Maven
     *   Liquibase (для управления миграциями базы данных)
 *   **База Данных:** PostgreSQL
