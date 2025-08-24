@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import com.example.bankcards.dto.error.ErrorResponse;
 
 @RestController
 @RequestMapping("/api/admin/cards")
@@ -34,10 +35,10 @@ public class AdminCardController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Card created successfully",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardResponseDto.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid request body or data validation failed",
-                    content = @Content),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required",
-                    content = @Content)
+            @ApiResponse(responseCode = "400", description = "Invalid request body or data validation failed.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping
     public ResponseEntity<CardResponseDto> createCard(@Valid @RequestBody CardCreateRequest request){
@@ -50,8 +51,8 @@ public class AdminCardController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved list of cards",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = Page.class))), // Springdoc обычно корректно обрабатывает Page<T>
-            @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required",
-                    content = @Content)
+            @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping
     public ResponseEntity<Page<CardResponseDto>> getAllCards(Pageable pageable) {
@@ -64,10 +65,10 @@ public class AdminCardController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Card found and retrieved successfully",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardResponseDto.class))),
-            @ApiResponse(responseCode = "404", description = "Card not found with the given ID",
-                    content = @Content),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required",
-                    content = @Content)
+            @ApiResponse(responseCode = "404", description = "Card not found with the given ID.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/{id}")
     public ResponseEntity<CardResponseDto> getCardById(@PathVariable Long id) {
@@ -80,12 +81,12 @@ public class AdminCardController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Card updated successfully",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardResponseDto.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid request body or data validation failed",
-                    content = @Content),
-            @ApiResponse(responseCode = "404", description = "Card not found with the given ID",
-                    content = @Content),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required",
-                    content = @Content)
+            @ApiResponse(responseCode = "400", description = "Invalid request body or data validation failed.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Card not found with the given ID.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PutMapping("/{id}")
     public ResponseEntity<CardResponseDto> updateCard(@PathVariable Long id,
@@ -98,11 +99,11 @@ public class AdminCardController {
             description = "Deletes a bank card permanently by its ID. Only accessible by administrators.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Card deleted successfully",
-                    content = @Content),
-            @ApiResponse(responseCode = "404", description = "Card not found with the given ID",
-                    content = @Content),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required",
-                    content = @Content)
+                    content = @Content(mediaType = "application/json")), // Для 204 No Content, можно оставить content без schema.
+            @ApiResponse(responseCode = "404", description = "Card not found with the given ID.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCard(@PathVariable Long id) {
@@ -115,12 +116,12 @@ public class AdminCardController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Card blocked successfully",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardResponseDto.class))),
-            @ApiResponse(responseCode = "400", description = "Card is already blocked or cannot be blocked in its current state",
-                    content = @Content),
-            @ApiResponse(responseCode = "404", description = "Card not found with the given ID",
-                    content = @Content),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required",
-                    content = @Content)
+            @ApiResponse(responseCode = "400", description = "Card is already blocked or cannot be blocked in its current state.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Card not found with the given ID.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/{id}/block")
     public ResponseEntity<CardResponseDto> blockCard(@PathVariable Long id) {
@@ -133,12 +134,12 @@ public class AdminCardController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Card activated successfully",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardResponseDto.class))),
-            @ApiResponse(responseCode = "400", description = "Card is already active or cannot be activated in its current state",
-                    content = @Content),
-            @ApiResponse(responseCode = "404", description = "Card not found with the given ID",
-                    content = @Content),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required",
-                    content = @Content)
+            @ApiResponse(responseCode = "400", description = "Card is already active or cannot be activated in its current state.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Card not found with the given ID.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/{id}/activate")
     public ResponseEntity<CardResponseDto> activateCard(@PathVariable Long id) {

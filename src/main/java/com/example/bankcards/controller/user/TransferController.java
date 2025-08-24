@@ -11,13 +11,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
+import com.example.bankcards.dto.error.ErrorResponse;
 
 import jakarta.validation.Valid;
 import java.util.List;
@@ -36,12 +36,12 @@ public class TransferController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Transfer created successfully",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = TransferResponseDto.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid request body, insufficient funds, or other business rule violation",
-                    content = @Content),
-            @ApiResponse(responseCode = "403", description = "Forbidden - User access required or card not owned by user",
-                    content = @Content),
-            @ApiResponse(responseCode = "404", description = "Source or destination card not found",
-                    content = @Content)
+            @ApiResponse(responseCode = "400", description = "Invalid request body, insufficient funds, card is not active, or cannot transfer to the same card.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - User access required or card does not belong to the user.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Source or destination card not found.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping
     public ResponseEntity<TransferResponseDto> createTransfer(@Valid @RequestBody TransferRequest request,
@@ -56,8 +56,8 @@ public class TransferController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved list of transfers",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = TransferResponseDto.class))),
-            @ApiResponse(responseCode = "403", description = "Forbidden - User access required",
-                    content = @Content)
+            @ApiResponse(responseCode = "403", description = "Forbidden - User access required.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/my")
     public ResponseEntity<List<TransferResponseDto>> getMyTransfers(Authentication authentication) {
@@ -71,10 +71,10 @@ public class TransferController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved list of card transfers",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = TransferResponseDto.class))),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Card not owned by user or user access required",
-                    content = @Content),
-            @ApiResponse(responseCode = "404", description = "Card not found with the given ID",
-                    content = @Content)
+            @ApiResponse(responseCode = "403", description = "Forbidden - Card does not belong to user or user access required.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Card not found with the given ID.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/card/{cardId}")
     public ResponseEntity<List<TransferResponseDto>> getCardTransfers(@PathVariable Long cardId,
@@ -89,10 +89,10 @@ public class TransferController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Transfer found and retrieved successfully",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = TransferResponseDto.class))),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Transfer not associated with user or user access required",
-                    content = @Content),
-            @ApiResponse(responseCode = "404", description = "Transfer not found with the given ID",
-                    content = @Content)
+            @ApiResponse(responseCode = "403", description = "Forbidden - Transfer not associated with user or user access required.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Transfer not found with the given ID.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/{transferId}")
     public ResponseEntity<TransferResponseDto> getTransfer(@PathVariable Long transferId,

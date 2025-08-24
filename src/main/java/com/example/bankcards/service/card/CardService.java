@@ -6,6 +6,7 @@ import com.example.bankcards.dto.card.CardUpdateRequest;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.User;
 import com.example.bankcards.entity.enums.CardStatus;
+import com.example.bankcards.exception.card.CardNotFoundException;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.UserRepository;
 import com.example.bankcards.util.mapper.CardDtoMapper;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,7 +32,7 @@ public class CardService {
     @Transactional
     public CardResponseDto createCard(CardCreateRequest request) {
         User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         String encryptedCardNumber = cardEncryptionService.encryptCardNumber(request.getCardNumber());
 
@@ -55,14 +57,14 @@ public class CardService {
 
     public CardResponseDto getCardById(Long id) {
         Card card = cardRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Card not found"));
+                .orElseThrow(() -> new CardNotFoundException("Card not found"));
         return cardDtoMapper.toCardResponseDto(card);
     }
 
     @Transactional
     public CardResponseDto updateCard(Long id, CardUpdateRequest request) {
         Card card = cardRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Card not found"));
+                .orElseThrow(() -> new CardNotFoundException("Card not found"));
 
         if (request.getCardHolder() != null) {
             card.setCardHolder(request.getCardHolder());
@@ -86,7 +88,7 @@ public class CardService {
     @Transactional
     public void deleteCard(Long id) {
         Card card = cardRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Card not found"));
+                .orElseThrow(() -> new CardNotFoundException("Card not found"));
         cardRepository.delete(card);
         log.info("Deleted card with ID: {}", id);
     }
@@ -94,7 +96,7 @@ public class CardService {
     @Transactional
     public CardResponseDto blockCard(Long id) {
         Card card = cardRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Card not found"));
+                .orElseThrow(() -> new CardNotFoundException("Card not found"));
         card.setCardStatus(CardStatus.BLOCKED);
         Card savedCard = cardRepository.save(card);
         log.info("Blocked card with ID: {}", id);
@@ -104,7 +106,7 @@ public class CardService {
     @Transactional
     public CardResponseDto activateCard(Long id) {
         Card card = cardRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Card not found"));
+                .orElseThrow(() -> new CardNotFoundException("Card not found"));
         card.setCardStatus(CardStatus.ACTIVE);
         Card savedCard = cardRepository.save(card);
         log.info("Activated card with ID: {}", id);

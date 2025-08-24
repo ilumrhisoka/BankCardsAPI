@@ -3,6 +3,9 @@ package com.example.bankcards.service.card;
 import com.example.bankcards.dto.card.CardResponseDto;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.enums.CardStatus;
+import com.example.bankcards.exception.ForbiddenException;
+import com.example.bankcards.exception.card.CardBlockedException;
+import com.example.bankcards.exception.card.CardNotFoundException;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.util.mapper.CardDtoMapper;
 import com.example.bankcards.util.CardMaskingUtil;
@@ -12,6 +15,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -36,10 +41,10 @@ public class UserCardService {
     @Transactional
     public void requestUnblock(Long cardId, String username) {
         Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> new RuntimeException("Card not found"));
+                .orElseThrow(() -> new CardNotFoundException("Card not found"));
 
         if (!card.getUser().getUsername().equals(username)) {
-            throw new RuntimeException("Access denied: Card doesn't belong to user");
+            throw new ForbiddenException("Access denied: Card doesn't belong to user");
         }
         if (card.getCardStatus() != CardStatus.BLOCKED) {
             throw new RuntimeException("Card is not blocked");
@@ -50,13 +55,13 @@ public class UserCardService {
     @Transactional
     public void requestBlock(Long cardId, String username) {
         Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> new RuntimeException("Card not found"));
+                .orElseThrow(() -> new CardNotFoundException("Card not found"));
 
         if (!card.getUser().getUsername().equals(username)) {
-            throw new RuntimeException("Access denied: Card doesn't belong to user");
+            throw new ForbiddenException("Access denied: Card doesn't belong to user");
         }
         if (card.getCardStatus() == CardStatus.BLOCKED) {
-            throw new RuntimeException("Card is blocked");
+            throw new CardBlockedException("Card is blocked");
         }
         log.info("User {} requested block for card {}", username, CardMaskingUtil.maskCardNumber(card.getCardNumber()));
     }
@@ -68,9 +73,9 @@ public class UserCardService {
 
     public CardResponseDto getUserCardById(Long cardId, String username) {
         Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> new RuntimeException("Card not found"));
+                .orElseThrow(() -> new CardNotFoundException("Card not found"));
         if(!card.getUser().getUsername().equals(username)) {
-            throw new RuntimeException("Access denied: Card doesn't belong to user");
+            throw new ForbiddenException("Access denied: Card doesn't belong to user");
         }
         return cardDtoMapper.toCardResponseDto(card);
     }

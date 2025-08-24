@@ -6,6 +6,12 @@ import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.Transfer;
 import com.example.bankcards.entity.enums.CardStatus;
 import com.example.bankcards.entity.enums.TransferStatus;
+import com.example.bankcards.exception.BadRequestException;
+import com.example.bankcards.exception.ForbiddenException;
+import com.example.bankcards.exception.ResourceNotFoundException;
+import com.example.bankcards.exception.card.CardBlockedException;
+import com.example.bankcards.exception.card.CardNotFoundException;
+import com.example.bankcards.exception.card.InsufficientFundsException;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.TransferRepository;
 import com.example.bankcards.service.card.CardEncryptionService;
@@ -16,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.lang.module.ResolutionException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,32 +41,32 @@ public class TransferService {
     @Transactional
     public TransferResponseDto createTransfer(TransferRequest request, String username) {
         Card fromCard = cardRepository.findById(request.getFromCardId())
-                .orElseThrow(() -> new RuntimeException("From card not found"));
+                .orElseThrow(() -> new CardNotFoundException("Source card not found with ID: " + request.getFromCardId()));
 
 
         if (!fromCard.getUser().getUsername().equals(username)) {
-            throw new RuntimeException("Access denied: Card doesn't belong to user");
+            throw new ForbiddenException("Access denied: Card doesn't belong to user");
         }
         if (fromCard.getCardStatus() != CardStatus.ACTIVE) {
-            throw new RuntimeException("From card is not active");
+            throw new CardBlockedException("Source card is not active. Current status: " + fromCard.getCardStatus());
         }
         Card toCard = findCardByNumber(request.getToCardNumber());
 
         if (toCard == null) {
-            throw new RuntimeException("To card not found");
+            throw new CardNotFoundException("Destination card not found with number: " + CardMaskingUtil.maskCardNumber(request.getToCardNumber()));
         }
         if (!toCard.getUser().getUsername().equals(username)) {
-            throw new RuntimeException("Access denied: Target card doesn't belong to the same user");
+            throw new ForbiddenException("Access denied: Target card doesn't belong to the same user");
         }
         if (toCard.getCardStatus() != CardStatus.ACTIVE) {
-            throw new RuntimeException("To card is not active");
+            throw new CardBlockedException("Destination card is not active. Current status: " + toCard.getCardStatus());
         }
         if (fromCard.getId().equals(toCard.getId())) {
-            throw new RuntimeException("Cannot transfer to the same card");
+            throw new BadRequestException("Cannot transfer to the same card");
         }
 
         if (fromCard.getBalance().compareTo(request.getAmount()) < 0) {
-            throw new RuntimeException("Insufficient funds");
+            throw new InsufficientFundsException("Insufficient funds on source card. Available: " + fromCard.getBalance() + ", Requested: " + request.getAmount());
         }
 
         try {
@@ -86,7 +93,7 @@ public class TransferService {
             return transferDtoMapper.toTransferResponseDto(savedTransfer, username);
 
         } catch (Exception e) {
-            log.error("Transfer failed: {}", e.getMessage());
+            log.error("Transfer failed due to: {}", e.getMessage());
 
             Transfer failedTransfer = new Transfer();
             failedTransfer.setFromCard(fromCard);
@@ -97,7 +104,7 @@ public class TransferService {
 
             Transfer savedTransfer = transferRepository.save(failedTransfer);
 
-            throw new RuntimeException("Transfer failed: " + e.getMessage());
+            throw new BadRequestException("Transfer failed: " + e.getMessage());
         }
     }
 
@@ -110,10 +117,10 @@ public class TransferService {
 
     public List<TransferResponseDto> getCardTransfers(Long cardId, String username) {
         Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> new RuntimeException("Card not found"));
+                .orElseThrow(() -> new CardNotFoundException("Card not found"));
 
         if (!card.getUser().getUsername().equals(username)) {
-            throw new RuntimeException("Access denied: Card doesn't belong to user");
+            throw new ForbiddenException("Access denied: Card doesn't belong to user");
         }
 
         List<Transfer> transfers = transferRepository.findByCardId(cardId);
@@ -124,13 +131,13 @@ public class TransferService {
 
     public TransferResponseDto getTransfer(Long transferId, String username) {
         Transfer transfer = transferRepository.findById(transferId)
-                .orElseThrow(() -> new RuntimeException("Transfer not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Transfer not found"));
 
         boolean isParticipant = transfer.getFromCard().getUser().getUsername().equals(username) ||
                 transfer.getToCard().getUser().getUsername().equals(username);
 
         if (!isParticipant) {
-            throw new RuntimeException("Access denied: User is not participant of this transfer");
+            throw new ForbiddenException("Access denied: User " + " is not participant of this transfer");
         }
 
         return transferDtoMapper.toTransferResponseDto(transfer, username);
@@ -140,6 +147,6 @@ public class TransferService {
         return cardRepository.findAll().stream()
                 .filter(card -> cardEncryptionService.matchesCardNumber(plainCardNumber, card.getCardNumber()))
                 .findFirst()
-                .orElse(null);
+                .orElseThrow(() -> new CardNotFoundException("Card not found"));
     }
 }

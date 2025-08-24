@@ -55,7 +55,7 @@ public class CardEncryptionService {
             return CardMaskingUtil.maskCardNumber(plainCardNumber);
         } catch (Exception e) {
             log.error("Failed to get masked card number", e);
-            return "****"; // Возвращаем безопасное значение в случае ошибки
+            return "****";
         }
     }
 
