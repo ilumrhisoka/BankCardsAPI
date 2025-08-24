@@ -1,8 +1,8 @@
-package com.example.bankcards.util;
+package com.example.bankcards.util.mapper;
 
 import com.example.bankcards.dto.transfer.TransferResponseDto;
 import com.example.bankcards.entity.Transfer;
-import com.example.bankcards.service.CardEncryptionService;
+import com.example.bankcards.service.card.CardEncryptionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -20,8 +20,6 @@ public class TransferDtoMapper {
         dto.setStatus(transfer.getStatus());
         dto.setTransferDate(transfer.getTransferDate());
         dto.setCreatedAt(transfer.getCreatedAt());
-
-        dto.setOutgoing(transfer.getFromCard().getUser().getUsername().equals(username));
 
         return dto;
     }

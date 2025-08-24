@@ -1,17 +1,16 @@
 package com.example.bankcards.security;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.Key;
-
-import com.example.bankcards.dto.auth.AuthResponseDto;
-import com.example.bankcards.entity.RefreshToken;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.annotation.PostConstruct;
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtUtil {
@@ -19,6 +18,7 @@ public class JwtUtil {
     private String secret;
     @Value("${jwt.access-token.expiration}")
     private long accessTokenExpiration;
+    @Getter
     @Value("${jwt.refresh-token.expiration}")
     private long refreshTokenExpiration;
     private static final SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS256;
@@ -69,8 +69,9 @@ public class JwtUtil {
         return claims.get("role", String.class);
     }
 
-    public long getRefreshTokenExpiration() {
-        return refreshTokenExpiration;
+
+    public String generateRefreshTokenString() {
+        return UUID.randomUUID().toString();
     }
 
 

@@ -11,10 +11,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +26,7 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtUtil jwtUtil;
 
+    @Transactional
     public AuthResponseDto login(String username, String password) {
         Optional<User> userOptional = userRepository.findByUsername(username);
 
@@ -33,9 +34,9 @@ public class AuthService {
             User user = userOptional.get();
             if(passwordEncoder.matches(password, user.getPassword())) {
                 String token = jwtUtil.generateToken(user.getUsername(), user.getRole().name());
-                RefreshToken refreshToken = createRefreshToken(user);
+                RefreshToken refreshToken = createAndSaveRefreshToken(user);
                 refreshTokenRepository.save(refreshToken);
-                log.info("Login Success");
+                log.info("Login Success for user: {}", username);
                 return new AuthResponseDto(token, refreshToken.getToken());
             }
         }
@@ -43,6 +44,7 @@ public class AuthService {
         return null;
     }
 
+    @Transactional
     public AuthResponseDto register(String username,String email, String password) {
         if(userRepository.findByUsername(username).isPresent()) {
             log.info("Username already exists");
@@ -52,20 +54,21 @@ public class AuthService {
         User newUser = new User(username, email, encodedPassword, Role.valueOf("ROLE_USER"));
         userRepository.save(newUser);
         String token = jwtUtil.generateToken(newUser.getUsername(), newUser.getRole().name());
-        RefreshToken refreshToken = createRefreshToken(newUser);
-        log.info("Register Success");
+        RefreshToken refreshToken = createAndSaveRefreshToken(newUser);
+        log.info("Register Success for user: {}", username);
         return new AuthResponseDto(token, refreshToken.getToken());
     }
 
-    private RefreshToken createRefreshToken(User user) {
+    private RefreshToken createAndSaveRefreshToken(User user) {
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setUser(user);
-        refreshToken.setToken(UUID.randomUUID().toString());
+        refreshToken.setToken(jwtUtil.generateRefreshTokenString());
         refreshToken.setExpiryDate(Instant.now().plusMillis(jwtUtil.getRefreshTokenExpiration()));
-        log.info("Refresh Token created");
+        log.info("Refresh Token created for user: {}", user.getUsername());
         return refreshTokenRepository.save(refreshToken);
     }
 
+    @Transactional
     public AuthResponseDto refreshAccessToken(String refreshTokenString) {
         Optional<RefreshToken> optionalRefreshToken = refreshTokenRepository.findByToken(refreshTokenString);
         if (optionalRefreshToken.isEmpty()) {
@@ -82,8 +85,8 @@ public class AuthService {
         }
         String newAccessToken = jwtUtil.generateToken(user.getUsername(), user.getRole().name());
         refreshTokenRepository.delete(refreshToken);
-        RefreshToken newRefreshToken = createRefreshToken(user);
-        log.info("Access Token refreshed");
+        RefreshToken newRefreshToken = createAndSaveRefreshToken(user);
+        log.info("Access Token refreshed for user: {}", user.getUsername());
 
         return new AuthResponseDto(newAccessToken, newRefreshToken.getToken());
     }

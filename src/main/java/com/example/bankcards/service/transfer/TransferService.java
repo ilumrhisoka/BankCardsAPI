@@ -1,4 +1,4 @@
-package com.example.bankcards.service;
+package com.example.bankcards.service.transfer;
 
 import com.example.bankcards.dto.transfer.TransferRequest;
 import com.example.bankcards.dto.transfer.TransferResponseDto;
@@ -8,14 +8,14 @@ import com.example.bankcards.entity.enums.CardStatus;
 import com.example.bankcards.entity.enums.TransferStatus;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.TransferRepository;
+import com.example.bankcards.service.card.CardEncryptionService;
 import com.example.bankcards.util.CardMaskingUtil;
-import com.example.bankcards.util.TransferDtoMapper;
+import com.example.bankcards.util.mapper.TransferDtoMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;

@@ -19,6 +19,4 @@ public class TransferResponseDto {
     private TransferStatus status;
     private LocalDateTime transferDate;
     private LocalDateTime createdAt;
-    private String description;
-    private boolean isOutgoing;
 }

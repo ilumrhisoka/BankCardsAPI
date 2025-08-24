@@ -1,11 +1,10 @@
-package com.example.bankcards.service;
+package com.example.bankcards.service.card;
 
 import com.example.bankcards.dto.card.CardResponseDto;
 import com.example.bankcards.entity.Card;
 import com.example.bankcards.entity.enums.CardStatus;
 import com.example.bankcards.repository.CardRepository;
-import com.example.bankcards.repository.UserRepository;
-import com.example.bankcards.util.CardDtoMapper;
+import com.example.bankcards.util.mapper.CardDtoMapper;
 import com.example.bankcards.util.CardMaskingUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

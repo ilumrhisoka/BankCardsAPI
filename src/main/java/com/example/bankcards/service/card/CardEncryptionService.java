@@ -1,4 +1,4 @@
-package com.example.bankcards.service;
+package com.example.bankcards.service.card;
 
 import com.example.bankcards.util.CardMaskingUtil;
 import com.example.bankcards.util.EncryptionUtil;
