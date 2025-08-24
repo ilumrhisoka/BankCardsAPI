@@ -56,7 +56,7 @@
 
 ```bash
 git clone https://github.com/ilumrhisoka/Bank_REST
-cd bank-cards-api # Перейдите в корневую папку проекта
+cd Bank_REST # Перейдите в корневую папку проекта
 ```
 
 ### 2. Запуск с помощью Docker Compose
