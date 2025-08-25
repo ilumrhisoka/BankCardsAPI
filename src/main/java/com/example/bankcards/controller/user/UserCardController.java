@@ -1,6 +1,6 @@
 package com.example.bankcards.controller.user;
 
-import com.example.bankcards.dto.card.CardResponseDto;
+import com.example.bankcards.model.dto.card.CardResponseDto;
 import com.example.bankcards.service.card.UserCardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,7 +16,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import com.example.bankcards.dto.error.ErrorResponse;
+import com.example.bankcards.exception.dto.ErrorResponse;
 
 import java.math.BigDecimal;
 

@@ -1,7 +1,7 @@
 package com.example.bankcards.controller.user;
 
-import com.example.bankcards.dto.transfer.TransferRequest;
-import com.example.bankcards.dto.transfer.TransferResponseDto;
+import com.example.bankcards.model.dto.transfer.TransferRequest;
+import com.example.bankcards.model.dto.transfer.TransferResponseDto;
 import com.example.bankcards.service.transfer.TransferService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -17,7 +17,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-import com.example.bankcards.dto.error.ErrorResponse;
+import com.example.bankcards.exception.dto.ErrorResponse;
 
 import jakarta.validation.Valid;
 import java.util.List;

@@ -1,9 +1,11 @@
 package com.example.bankcards.service;
 
-import com.example.bankcards.dto.auth.AuthResponseDto;
-import com.example.bankcards.entity.RefreshToken;
-import com.example.bankcards.entity.User;
-import com.example.bankcards.entity.enums.Role;
+import com.example.bankcards.exception.user.AuthenticationFailedException;
+import com.example.bankcards.exception.user.DuplicateUsernameException;
+import com.example.bankcards.model.dto.auth.AuthResponseDto;
+import com.example.bankcards.model.entity.RefreshToken;
+import com.example.bankcards.model.entity.User;
+import com.example.bankcards.model.entity.enums.Role;
 import com.example.bankcards.repository.RefreshTokenRepository;
 import com.example.bankcards.repository.UserRepository;
 import com.example.bankcards.security.JwtUtil;
@@ -40,15 +42,15 @@ public class AuthService {
                 return new AuthResponseDto(token, refreshToken.getToken());
             }
         }
-        log.info("Username not found");
-        return null;
+        log.warn("Authentication failed for user: {}", username);
+        throw new AuthenticationFailedException("Invalid username or password");
     }
 
     @Transactional
     public AuthResponseDto register(String username,String email, String password) {
         if(userRepository.findByUsername(username).isPresent()) {
-            log.info("Username already exists");
-            return null;
+            log.warn("Registration failed: Username '{}' already exists", username);
+            throw new DuplicateUsernameException("Username" + username + " already exists");
         }
         String encodedPassword = passwordEncoder.encode(password);
         User newUser = new User(username, email, encodedPassword, Role.valueOf("ROLE_USER"));

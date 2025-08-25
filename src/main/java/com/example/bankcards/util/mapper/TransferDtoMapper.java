@@ -1,7 +1,7 @@
 package com.example.bankcards.util.mapper;
 
-import com.example.bankcards.dto.transfer.TransferResponseDto;
-import com.example.bankcards.entity.Transfer;
+import com.example.bankcards.model.dto.transfer.TransferResponseDto;
+import com.example.bankcards.model.entity.Transfer;
 import com.example.bankcards.service.card.CardEncryptionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

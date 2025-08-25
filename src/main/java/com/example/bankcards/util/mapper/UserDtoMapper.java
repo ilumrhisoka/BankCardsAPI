@@ -1,7 +1,7 @@
 package com.example.bankcards.util.mapper;
 
-import com.example.bankcards.dto.user.UserResponseDto;
-import com.example.bankcards.entity.User;
+import com.example.bankcards.model.dto.user.UserResponseDto;
+import com.example.bankcards.model.entity.User;
 import org.springframework.stereotype.Component;
 
 @Component

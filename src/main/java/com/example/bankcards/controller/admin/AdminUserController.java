@@ -1,7 +1,7 @@
 package com.example.bankcards.controller.admin;
 
-import com.example.bankcards.dto.user.UserResponseDto;
-import com.example.bankcards.dto.user.UserUpdateRequest;
+import com.example.bankcards.model.dto.user.UserResponseDto;
+import com.example.bankcards.model.dto.user.UserUpdateRequest;
 import com.example.bankcards.service.admin.AdminUserService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -17,7 +17,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
-import com.example.bankcards.dto.error.ErrorResponse;
+import com.example.bankcards.exception.dto.ErrorResponse;
 import java.util.List;
 
 @RestController

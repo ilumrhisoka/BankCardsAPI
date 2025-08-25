@@ -1,6 +1,6 @@
 package com.example.bankcards.exception.card;
 
-import com.example.bankcards.exception.BadRequestException;
+import com.example.bankcards.exception.dto.BadRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 

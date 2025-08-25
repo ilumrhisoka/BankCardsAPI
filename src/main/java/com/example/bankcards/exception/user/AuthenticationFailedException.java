@@ -1,16 +1,16 @@
-package com.example.bankcards.exception.card;
+package com.example.bankcards.exception.user;
 
 import com.example.bankcards.exception.dto.BadRequestException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(HttpStatus.BAD_REQUEST)
-public class InsufficientFundsException extends BadRequestException {
-    public InsufficientFundsException(String message) {
+public class AuthenticationFailedException extends BadRequestException {
+    public AuthenticationFailedException(String message) {
         super(message);
     }
 
-    public InsufficientFundsException(String message, Throwable cause) {
+    public AuthenticationFailedException(String message, Throwable cause) {
         super(message, cause);
     }
 }

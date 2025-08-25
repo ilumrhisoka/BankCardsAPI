@@ -1,7 +1,7 @@
 package com.example.bankcards.initializer;
 
-import com.example.bankcards.entity.User;
-import com.example.bankcards.entity.enums.Role;
+import com.example.bankcards.model.entity.User;
+import com.example.bankcards.model.entity.enums.Role;
 import com.example.bankcards.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

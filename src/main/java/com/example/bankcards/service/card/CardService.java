@@ -1,11 +1,11 @@
 package com.example.bankcards.service.card;
 
-import com.example.bankcards.dto.card.CardCreateRequest;
-import com.example.bankcards.dto.card.CardResponseDto;
-import com.example.bankcards.dto.card.CardUpdateRequest;
-import com.example.bankcards.entity.Card;
-import com.example.bankcards.entity.User;
-import com.example.bankcards.entity.enums.CardStatus;
+import com.example.bankcards.model.dto.card.CardCreateRequest;
+import com.example.bankcards.model.dto.card.CardResponseDto;
+import com.example.bankcards.model.dto.card.CardUpdateRequest;
+import com.example.bankcards.model.entity.Card;
+import com.example.bankcards.model.entity.User;
+import com.example.bankcards.model.entity.enums.CardStatus;
 import com.example.bankcards.exception.card.CardNotFoundException;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.UserRepository;

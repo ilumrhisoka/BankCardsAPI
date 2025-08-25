@@ -1,8 +1,8 @@
 package com.example.bankcards.controller.admin;
 
-import com.example.bankcards.dto.card.CardCreateRequest;
-import com.example.bankcards.dto.card.CardResponseDto;
-import com.example.bankcards.dto.card.CardUpdateRequest;
+import com.example.bankcards.model.dto.card.CardCreateRequest;
+import com.example.bankcards.model.dto.card.CardResponseDto;
+import com.example.bankcards.model.dto.card.CardUpdateRequest;
 import com.example.bankcards.service.card.CardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -19,7 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import com.example.bankcards.dto.error.ErrorResponse;
+import com.example.bankcards.exception.dto.ErrorResponse;
 
 @RestController
 @RequestMapping("/api/admin/cards")

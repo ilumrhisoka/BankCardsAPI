@@ -1,10 +1,10 @@
 package com.example.bankcards.controller.auth;
 
-import com.example.bankcards.dto.auth.AuthResponseDto;
-import com.example.bankcards.dto.auth.LoginRequest;
-import com.example.bankcards.dto.auth.RefreshRequest;
-import com.example.bankcards.dto.auth.RegisterRequest;
-import com.example.bankcards.entity.User;
+import com.example.bankcards.model.dto.auth.AuthResponseDto;
+import com.example.bankcards.model.dto.auth.LoginRequest;
+import com.example.bankcards.model.dto.auth.RefreshRequest;
+import com.example.bankcards.model.dto.auth.RegisterRequest;
+import com.example.bankcards.model.entity.User;
 import com.example.bankcards.repository.UserRepository;
 import com.example.bankcards.service.AuthService;
 import lombok.RequiredArgsConstructor;

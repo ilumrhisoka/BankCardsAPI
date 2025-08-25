@@ -1,9 +1,10 @@
 package com.example.bankcards.service.card;
 
-import com.example.bankcards.dto.card.CardResponseDto;
-import com.example.bankcards.entity.Card;
-import com.example.bankcards.entity.enums.CardStatus;
-import com.example.bankcards.exception.ForbiddenException;
+import com.example.bankcards.exception.card.CardNotBlockedException;
+import com.example.bankcards.model.dto.card.CardResponseDto;
+import com.example.bankcards.model.entity.Card;
+import com.example.bankcards.model.entity.enums.CardStatus;
+import com.example.bankcards.exception.dto.ForbiddenException;
 import com.example.bankcards.exception.card.CardBlockedException;
 import com.example.bankcards.exception.card.CardNotFoundException;
 import com.example.bankcards.repository.CardRepository;
@@ -47,7 +48,7 @@ public class UserCardService {
             throw new ForbiddenException("Access denied: Card doesn't belong to user");
         }
         if (card.getCardStatus() != CardStatus.BLOCKED) {
-            throw new RuntimeException("Card is not blocked");
+            throw new CardNotBlockedException("Card is not blocked");
         }
         log.info("User {} requested unblock for card {}", username, CardMaskingUtil.maskCardNumber(card.getCardNumber()));
     }
@@ -61,7 +62,7 @@ public class UserCardService {
             throw new ForbiddenException("Access denied: Card doesn't belong to user");
         }
         if (card.getCardStatus() == CardStatus.BLOCKED) {
-            throw new CardBlockedException("Card is blocked");
+            throw new CardBlockedException("Card is already blocked");
         }
         log.info("User {} requested block for card {}", username, CardMaskingUtil.maskCardNumber(card.getCardNumber()));
     }

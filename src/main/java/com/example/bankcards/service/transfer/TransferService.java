@@ -1,14 +1,14 @@
 package com.example.bankcards.service.transfer;
 
-import com.example.bankcards.dto.transfer.TransferRequest;
-import com.example.bankcards.dto.transfer.TransferResponseDto;
-import com.example.bankcards.entity.Card;
-import com.example.bankcards.entity.Transfer;
-import com.example.bankcards.entity.enums.CardStatus;
-import com.example.bankcards.entity.enums.TransferStatus;
-import com.example.bankcards.exception.BadRequestException;
-import com.example.bankcards.exception.ForbiddenException;
-import com.example.bankcards.exception.ResourceNotFoundException;
+import com.example.bankcards.model.dto.transfer.TransferRequest;
+import com.example.bankcards.model.dto.transfer.TransferResponseDto;
+import com.example.bankcards.model.entity.Card;
+import com.example.bankcards.model.entity.Transfer;
+import com.example.bankcards.model.entity.enums.CardStatus;
+import com.example.bankcards.model.entity.enums.TransferStatus;
+import com.example.bankcards.exception.dto.BadRequestException;
+import com.example.bankcards.exception.dto.ForbiddenException;
+import com.example.bankcards.exception.dto.ResourceNotFoundException;
 import com.example.bankcards.exception.card.CardBlockedException;
 import com.example.bankcards.exception.card.CardNotFoundException;
 import com.example.bankcards.exception.card.InsufficientFundsException;
@@ -22,7 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.lang.module.ResolutionException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -86,8 +85,8 @@ public class TransferService {
             Transfer savedTransfer = transferRepository.save(transfer);
 
             log.info("Transfer completed: {} -> {} amount: {}",
-                    CardMaskingUtil.maskCardNumber(fromCard.getCardNumber()),
-                    CardMaskingUtil.maskCardNumber(toCard.getCardNumber()),
+                    cardEncryptionService.getMaskedCardNumber(fromCard.getCardNumber()),
+                    cardEncryptionService.getMaskedCardNumber(toCard.getCardNumber()),
                     request.getAmount());
 
             return transferDtoMapper.toTransferResponseDto(savedTransfer, username);
