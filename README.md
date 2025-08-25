@@ -84,9 +84,9 @@ docker-compose ps
 Соберите и запустите приложение:
 
 ```bash
-    mvn clean install
-    mvn spring-boot:run
-    ```
+mvn clean install
+mvn spring-boot:run
+```
 
 Ваше приложение будет доступно по адресу: `http://localhost:8080`.
 
