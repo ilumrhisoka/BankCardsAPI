@@ -216,8 +216,8 @@ class UserCardServiceTest {
         assertNotNull(result);
         assertFalse(result.isEmpty());
         assertEquals(1, result.getTotalElements());
-        assertEquals(activeCardResponseDto.getId(), result.getContent().get(0).getId());
-        assertEquals(activeCardResponseDto.getCardNumber(), result.getContent().get(0).getCardNumber());
+        assertEquals(activeCardResponseDto.getId(), result.getContent().getFirst().getId());
+        assertEquals(activeCardResponseDto.getCardNumber(), result.getContent().getFirst().getCardNumber());
         verify(cardRepository).findByUserUsernamePageable("testuser", pageable);
         verify(cardMapper).toCardResponseDto(activeCard);
         verify(cardEncryptionService).getMaskedCardNumber("encrypted-1111");

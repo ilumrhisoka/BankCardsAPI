@@ -1,6 +1,7 @@
 package com.example.bankcards.service.transfer;
 
 import com.example.bankcards.exception.card.CardNotFoundException;
+import com.example.bankcards.exception.card.CardStatusException;
 import com.example.bankcards.exception.card.InsufficientFundsException;
 import com.example.bankcards.exception.dto.BadRequestException;
 import com.example.bankcards.exception.dto.ForbiddenException;
@@ -149,9 +150,7 @@ class TransferServiceTest {
         when(cardRepository.findById(1L)).thenReturn(Optional.of(fromCard));
         when(cardRepository.findAll()).thenReturn(List.of(fromCard, toCard));
 
-        assertThrows(InsufficientFundsException.class, () -> {
-            transferService.createTransfer(transferRequest, "testuser");
-        });
+        assertThrows(InsufficientFundsException.class, () -> transferService.createTransfer(transferRequest, "testuser"));
         verify(cardRepository, never()).save(any());
         verifyNoInteractions(transferMapper);
     }
@@ -165,9 +164,7 @@ class TransferServiceTest {
         fromCard.setCardStatus(CardStatus.BLOCKED); // Карта заблокирована
         when(cardRepository.findById(1L)).thenReturn(Optional.of(fromCard));
 
-        assertThrows(CardBlockedException.class, () -> {
-            transferService.createTransfer(transferRequest, "testuser");
-        });
+        assertThrows(CardStatusException.class, () -> transferService.createTransfer(transferRequest, "testuser"));
         verifyNoInteractions(transferMapper);
     }
 
@@ -180,9 +177,7 @@ class TransferServiceTest {
         when(cardRepository.findById(1L)).thenReturn(Optional.of(fromCard));
         when(cardRepository.findAll()).thenReturn(List.of(fromCard));
 
-        assertThrows(BadRequestException.class, () -> {
-            transferService.createTransfer(transferRequest, "testuser");
-        });
+        assertThrows(BadRequestException.class, () -> transferService.createTransfer(transferRequest, "testuser"));
         verifyNoInteractions(transferMapper);
     }
 
@@ -194,9 +189,7 @@ class TransferServiceTest {
 
         when(cardRepository.findById(1L)).thenReturn(Optional.of(fromCard));
 
-        assertThrows(ForbiddenException.class, () -> {
-            transferService.createTransfer(transferRequest, "wronguser");
-        });
+        assertThrows(ForbiddenException.class, () -> transferService.createTransfer(transferRequest, "wronguser"));
         verifyNoInteractions(transferMapper);
     }
 
@@ -209,9 +202,7 @@ class TransferServiceTest {
         when(cardRepository.findById(1L)).thenReturn(Optional.of(fromCard));
         when(cardRepository.findAll()).thenReturn(Collections.singletonList(fromCard));
 
-        assertThrows(CardNotFoundException.class, () -> {
-            transferService.createTransfer(transferRequest, "testuser");
-        });
+        assertThrows(CardNotFoundException.class, () -> transferService.createTransfer(transferRequest, "testuser"));
         verifyNoInteractions(transferMapper);
     }
 
@@ -232,9 +223,7 @@ class TransferServiceTest {
         when(cardRepository.findAll()).thenReturn(List.of(fromCard, toCardAnotherUser));
         lenient().when(cardEncryptionService.matchesCardNumber("plain_9999", "encrypted_9999")).thenReturn(true);
 
-        assertThrows(ForbiddenException.class, () -> {
-            transferService.createTransfer(transferRequest, "testuser");
-        });
+        assertThrows(ForbiddenException.class, () -> transferService.createTransfer(transferRequest, "testuser"));
         verifyNoInteractions(transferMapper);
     }
 
@@ -249,9 +238,7 @@ class TransferServiceTest {
         when(cardRepository.findById(1L)).thenReturn(Optional.of(fromCard));
         when(cardRepository.findAll()).thenReturn(List.of(fromCard, toCard));
 
-        assertThrows(CardBlockedException.class, () -> {
-            transferService.createTransfer(transferRequest, "testuser");
-        });
+        assertThrows(CardStatusException.class, () -> transferService.createTransfer(transferRequest, "testuser"));
         verifyNoInteractions(transferMapper);
     }
 
@@ -283,8 +270,8 @@ class TransferServiceTest {
         assertNotNull(result);
         assertFalse(result.isEmpty());
         assertEquals(1, result.size());
-        assertEquals("masked_1234", result.get(0).getFromCardNumber());
-        assertEquals("masked_5678", result.get(0).getToCardNumber());
+        assertEquals("masked_1234", result.getFirst().getFromCardNumber());
+        assertEquals("masked_5678", result.getFirst().getToCardNumber());
         verify(transferRepository).findByUserUsername("testuser");
         verify(transferMapper).toTransferResponseDto(testTransfer);
         verify(cardEncryptionService, times(2)).getMaskedCardNumber(anyString());
@@ -319,8 +306,8 @@ class TransferServiceTest {
         assertNotNull(result);
         assertFalse(result.isEmpty());
         assertEquals(1, result.size());
-        assertEquals("masked_1234", result.get(0).getFromCardNumber());
-        assertEquals("masked_5678", result.get(0).getToCardNumber());
+        assertEquals("masked_1234", result.getFirst().getFromCardNumber());
+        assertEquals("masked_5678", result.getFirst().getToCardNumber());
         verify(cardRepository).findById(1L);
         verify(transferRepository).findByCardId(1L);
         verify(transferMapper).toTransferResponseDto(testTransfer);

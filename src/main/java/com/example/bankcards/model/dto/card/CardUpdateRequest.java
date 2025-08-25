@@ -2,7 +2,6 @@ package com.example.bankcards.model.dto.card;
 
 import com.example.bankcards.model.entity.enums.CardStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
