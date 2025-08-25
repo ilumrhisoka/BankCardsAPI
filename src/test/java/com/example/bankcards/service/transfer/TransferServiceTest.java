@@ -1,6 +1,5 @@
 package com.example.bankcards.service.transfer;
 
-import com.example.bankcards.exception.card.CardBlockedException;
 import com.example.bankcards.exception.card.CardNotFoundException;
 import com.example.bankcards.exception.card.InsufficientFundsException;
 import com.example.bankcards.exception.dto.BadRequestException;

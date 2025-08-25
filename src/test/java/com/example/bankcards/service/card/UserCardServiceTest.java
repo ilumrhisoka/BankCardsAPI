@@ -1,8 +1,7 @@
 package com.example.bankcards.service.card;
 
-import com.example.bankcards.exception.card.CardBlockedException;
-import com.example.bankcards.exception.card.CardNotBlockedException;
 import com.example.bankcards.exception.card.CardNotFoundException;
+import com.example.bankcards.exception.card.CardStatusException;
 import com.example.bankcards.exception.dto.ForbiddenException;
 import com.example.bankcards.model.dto.card.CardResponseDto;
 import com.example.bankcards.model.entity.Card;
@@ -137,7 +136,7 @@ class UserCardServiceTest {
     void requestUnblock_whenCardIsNotBlocked_shouldThrowCardNotBlockedException() {
         when(cardRepository.findById(1L)).thenReturn(Optional.of(activeCard));
 
-        assertThrows(CardNotBlockedException.class, () -> userCardService.requestUnblock(1L, "testuser"));
+        assertThrows(CardStatusException.class, () -> userCardService.requestUnblock(1L, "testuser"));
         verify(cardRepository).findById(1L);
         verifyNoInteractions(cardEncryptionService);
     }
@@ -190,7 +189,7 @@ class UserCardServiceTest {
     void requestBlock_whenCardIsAlreadyBlocked_shouldThrowCardBlockedException() {
         when(cardRepository.findById(2L)).thenReturn(Optional.of(blockedCard));
 
-        assertThrows(CardBlockedException.class, () -> userCardService.requestBlock(2L, "testuser"));
+        assertThrows(CardStatusException.class, () -> userCardService.requestBlock(2L, "testuser"));
         verify(cardRepository).findById(2L);
         verifyNoInteractions(cardEncryptionService);
     }

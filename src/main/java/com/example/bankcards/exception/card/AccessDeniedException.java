@@ -5,12 +5,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(HttpStatus.BAD_REQUEST)
-public class CardBlockedException extends BadRequestException {
-    public CardBlockedException(String message) {
+public class AccessDeniedException extends BadRequestException {
+    public AccessDeniedException(String message) {
         super(message);
     }
 
-    public CardBlockedException(String message, Throwable cause) {
+    public AccessDeniedException(String message, Throwable cause) {
         super(message, cause);
     }
 }

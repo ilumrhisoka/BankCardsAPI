@@ -2,14 +2,16 @@ package com.example.bankcards.model.dto.card;
 
 import com.example.bankcards.model.entity.enums.CardStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-@Data
+/**
+ * DTO for card response.
+ */
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Schema(description = "DTO for card response, representing bank card information.")

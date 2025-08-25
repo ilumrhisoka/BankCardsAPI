@@ -18,6 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.Optional;
 
+/**
+ * Service class for handling user authentication, including login, registration, and token refreshing.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -28,6 +31,15 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtUtil jwtUtil;
 
+    /**
+     * Authenticates a user with the provided username and password.
+     * If authentication is successful, generates and returns an access token and a refresh token.
+     *
+     * @param username The username of the user attempting to log in.
+     * @param password The password of the user attempting to log in.
+     * @return An {@link AuthResponseDto} containing the generated access token and refresh token.
+     * @throws AuthenticationFailedException if the username or password is invalid.
+     */
     @Transactional
     public AuthResponseDto login(String username, String password) {
         Optional<User> userOptional = userRepository.findByUsername(username);
@@ -45,6 +57,17 @@ public class AuthService {
         throw new AuthenticationFailedException("Invalid username or password");
     }
 
+    /**
+     * Registers a new user with the provided username, email, and password.
+     * If registration is successful, generates and returns an access token and a refresh token for the new user.
+     * The new user is assigned the 'ROLE_USER' role by default.
+     *
+     * @param username The desired username for the new user.
+     * @param email The email address for the new user.
+     * @param password The desired password for the new user.
+     * @return An {@link AuthResponseDto} containing the generated access token and refresh token for the new user.
+     * @throws DuplicateUsernameException if a user with the provided username already exists.
+     */
     @Transactional
     public AuthResponseDto register(String username,String email, String password) {
         if(userRepository.findByUsername(username).isPresent()) {
@@ -60,6 +83,12 @@ public class AuthService {
         return new AuthResponseDto(token, refreshToken.getToken());
     }
 
+    /**
+     * Creates and saves a new refresh token for the given user.
+     *
+     * @param user The user for whom to create the refresh token.
+     * @return The newly created and saved {@link RefreshToken} object.
+     */
     private RefreshToken createAndSaveRefreshToken(User user) {
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setUser(user);
@@ -69,6 +98,15 @@ public class AuthService {
         return refreshTokenRepository.save(refreshToken);
     }
 
+    /**
+     * Refreshes an access token using a provided refresh token.
+     * Invalidates the old refresh token and issues a new one along with a new access token.
+     *
+     * @param refreshTokenString The string representation of the refresh token.
+     * @return An {@link AuthResponseDto} containing the new access token and new refresh token.
+     * @throws RuntimeException if the refresh token is not found, is invalid, or has expired,
+     *                          or if the user associated with the refresh token is not found.
+     */
     @Transactional
     public AuthResponseDto refreshAccessToken(String refreshTokenString) {
         Optional<RefreshToken> optionalRefreshToken = refreshTokenRepository.findByToken(refreshTokenString);

@@ -6,6 +6,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service class responsible for encrypting, decrypting, and masking card numbers.
+ * It utilizes {@link EncryptionUtil} for cryptographic operations and {@link CardMaskingUtil} for masking.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -13,6 +17,14 @@ public class CardEncryptionService {
 
     private final EncryptionUtil encryptionUtil;
 
+    /**
+     * Encrypts a plain card number.
+     *
+     * @param plainCardNumber The unencrypted card number string.
+     * @return The encrypted card number string.
+     * @throws IllegalArgumentException if the plain card number is null, empty, or has an invalid format.
+     * @throws RuntimeException if the encryption process fails.
+     */
     public String encryptCardNumber(String plainCardNumber) {
         if (plainCardNumber == null || plainCardNumber.trim().isEmpty()) {
             throw new IllegalArgumentException("Card number cannot be null or empty");
@@ -34,6 +46,14 @@ public class CardEncryptionService {
         }
     }
 
+    /**
+     * Decrypts an encrypted card number.
+     *
+     * @param encryptedCardNumber The encrypted card number string.
+     * @return The decrypted (plain) card number string.
+     * @throws IllegalArgumentException if the encrypted card number is null or empty.
+     * @throws RuntimeException if the decryption process fails.
+     */
     public String decryptCardNumber(String encryptedCardNumber) {
         if (encryptedCardNumber == null || encryptedCardNumber.trim().isEmpty()) {
             throw new IllegalArgumentException("Encrypted card number cannot be null or empty");
@@ -49,6 +69,13 @@ public class CardEncryptionService {
         }
     }
 
+    /**
+     * Retrieves a masked version of an encrypted card number.
+     * The card number is first decrypted and then masked.
+     *
+     * @param encryptedCardNumber The encrypted card number string.
+     * @return The masked card number string (e.g., "************1234"). Returns "****" if decryption fails.
+     */
     public String getMaskedCardNumber(String encryptedCardNumber) {
         try {
             String plainCardNumber = decryptCardNumber(encryptedCardNumber);
@@ -59,6 +86,14 @@ public class CardEncryptionService {
         }
     }
 
+    /**
+     * Compares a plain card number with an encrypted card number to check if they match.
+     * The encrypted card number is decrypted internally for comparison.
+     *
+     * @param plainCardNumber The plain card number string.
+     * @param encryptedCardNumber The encrypted card number string.
+     * @return {@code true} if the plain card number matches the decrypted encrypted card number, {@code false} otherwise.
+     */
     public boolean matchesCardNumber(String plainCardNumber, String encryptedCardNumber) {
         if (plainCardNumber == null || encryptedCardNumber == null) {
             return false;
@@ -70,20 +105,6 @@ public class CardEncryptionService {
         } catch (Exception e) {
             log.error("Failed to match card numbers", e);
             return false;
-        }
-    }
-
-    public String getLastFourDigits(String encryptedCardNumber) {
-        try {
-            String plainCardNumber = decryptCardNumber(encryptedCardNumber);
-            String cleaned = plainCardNumber.replaceAll("\\D", "");
-            if (cleaned.length() >= 4) {
-                return cleaned.substring(cleaned.length() - 4);
-            }
-            return "****";
-        } catch (Exception e) {
-            log.error("Failed to get last four digits", e);
-            return "****";
         }
     }
 }

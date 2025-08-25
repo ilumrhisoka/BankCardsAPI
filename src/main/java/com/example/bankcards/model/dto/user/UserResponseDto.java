@@ -2,13 +2,15 @@ package com.example.bankcards.model.dto.user;
 
 import com.example.bankcards.model.entity.enums.Role;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
-@Data
+/**
+ * DTO for user response.
+ */
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Schema(description = "DTO for user response, representing user information.")

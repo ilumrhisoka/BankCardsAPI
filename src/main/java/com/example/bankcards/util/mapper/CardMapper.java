@@ -5,6 +5,11 @@ import com.example.bankcards.model.entity.Card;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+/**
+ * Mapper interface for converting between {@link com.example.bankcards.model.entity.Card} entities
+ * and their corresponding DTOs ({@link com.example.bankcards.model.dto.card.CardResponseDto}).
+ * This interface uses MapStruct for automatic mapping generation.
+ */
 @Mapper(componentModel = "spring")
 public interface CardMapper {
 

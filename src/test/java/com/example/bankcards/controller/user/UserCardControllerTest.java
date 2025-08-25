@@ -1,7 +1,6 @@
 package com.example.bankcards.controller.user;
 
-import com.example.bankcards.exception.card.CardBlockedException;
-import com.example.bankcards.exception.card.CardNotBlockedException;
+import com.example.bankcards.exception.card.CardStatusException;
 import com.example.bankcards.exception.card.CardNotFoundException;
 import com.example.bankcards.exception.dto.ForbiddenException;
 import com.example.bankcards.model.dto.card.CardResponseDto;
@@ -149,7 +148,7 @@ class UserCardControllerTest {
     @Test
     @WithMockUser(username = TEST_USERNAME, authorities = "ROLE_USER")
     void requestBlockCard_whenCardAlreadyBlocked_shouldReturnBadRequest() throws Exception {
-        doThrow(new CardBlockedException("Card is already blocked")).when(userCardService).requestBlock(anyLong(), eq(TEST_USERNAME));
+        doThrow(new CardStatusException("Card is already blocked")).when(userCardService).requestBlock(anyLong(), eq(TEST_USERNAME));
 
         mockMvc.perform(post("/api/user/cards/block/{cardId}", 1L).with(csrf()))
                 .andExpect(status().isBadRequest());
@@ -185,7 +184,7 @@ class UserCardControllerTest {
     @Test
     @WithMockUser(username = TEST_USERNAME, authorities = "ROLE_USER")
     void requestUnblockCard_whenCardNotBlocked_shouldReturnBadRequest() throws Exception {
-        doThrow(new CardNotBlockedException("Card is not blocked")).when(userCardService).requestUnblock(anyLong(), eq(TEST_USERNAME));
+        doThrow(new CardStatusException("Card is not blocked")).when(userCardService).requestUnblock(anyLong(), eq(TEST_USERNAME));
 
         mockMvc.perform(post("/api/user/cards/unblock/{cardId}", 1L).with(csrf()))
                 .andExpect(status().isBadRequest());

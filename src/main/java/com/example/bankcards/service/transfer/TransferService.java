@@ -1,5 +1,7 @@
 package com.example.bankcards.service.transfer;
 
+import com.example.bankcards.exception.card.CardStatusException;
+import com.example.bankcards.exception.transfer.InvalidTransferException;
 import com.example.bankcards.model.dto.transfer.TransferRequest;
 import com.example.bankcards.model.dto.transfer.TransferResponseDto;
 import com.example.bankcards.model.entity.Card;
@@ -7,16 +9,15 @@ import com.example.bankcards.model.entity.Transfer;
 import com.example.bankcards.model.entity.enums.CardStatus;
 import com.example.bankcards.model.entity.enums.TransferStatus;
 import com.example.bankcards.exception.dto.BadRequestException;
+import com.example.bankcards.exception.card.AccessDeniedException;
 import com.example.bankcards.exception.dto.ForbiddenException;
 import com.example.bankcards.exception.dto.ResourceNotFoundException;
-import com.example.bankcards.exception.card.CardBlockedException;
 import com.example.bankcards.exception.card.CardNotFoundException;
 import com.example.bankcards.exception.card.InsufficientFundsException;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.TransferRepository;
 import com.example.bankcards.service.card.CardEncryptionService;
-// import com.example.bankcards.util.CardMaskingUtil; // Удаляем, используем CardEncryptionService
-import com.example.bankcards.util.mapper.TransferMapper; // Используем TransferMapper
+import com.example.bankcards.util.mapper.TransferMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Service class for managing money transfer operations.
+ * This service handles the creation and retrieval of transfers, including validation
+ * of card status, ownership, and sufficient funds.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -37,16 +43,30 @@ public class TransferService {
     private final CardRepository cardRepository;
     private final TransferMapper transferMapper;
 
+    /**
+     * Initiates a new money transfer between two cards.
+     * Performs various validations: card existence, ownership, status, sufficient funds,
+     * and prevents transfer to the same card.
+     *
+     * @param request The {@link TransferRequest} containing transfer details.
+     * @param username The username of the authenticated user attempting the transfer.
+     * @return A {@link TransferResponseDto} representing the created transfer.
+     * @throws CardNotFoundException if the source or destination card is not found.
+     * @throws AccessDeniedException if the source card does not belong to the authenticated user.
+     * @throws InvalidTransferException if the source or destination card is not active,
+     *                                  or if attempting to transfer to the same card.
+     * @throws InsufficientFundsException if the source card has insufficient funds.
+     */
     @Transactional
     public TransferResponseDto createTransfer(TransferRequest request, String username) {
         Card fromCard = cardRepository.findById(request.getFromCardId())
                 .orElseThrow(() -> new CardNotFoundException("Source card not found with ID: " + request.getFromCardId()));
 
         if (!fromCard.getUser().getUsername().equals(username)) {
-            throw new ForbiddenException("Access denied: Card doesn't belong to user");
+            throw new AccessDeniedException("Access denied: Card doesn't belong to user");
         }
         if (fromCard.getCardStatus() != CardStatus.ACTIVE) {
-            throw new CardBlockedException("Source card is not active. Current status: " + fromCard.getCardStatus());
+            throw new CardStatusException("Source card is not active. Current status: " + fromCard.getCardStatus());
         }
 
         Card toCard = findCardByNumber(request.getToCardNumber());
@@ -56,10 +76,10 @@ public class TransferService {
         }
 
         if (toCard.getCardStatus() != CardStatus.ACTIVE) {
-            throw new CardBlockedException("Destination card is not active. Current status: " + toCard.getCardStatus());
+            throw new CardStatusException("Destination card is not active. Current status: " + toCard.getCardStatus());
         }
         if (fromCard.getId().equals(toCard.getId())) {
-            throw new BadRequestException("Cannot transfer to the same card");
+            throw new InvalidTransferException("Cannot transfer to the same card");
         }
 
         if (fromCard.getBalance().compareTo(request.getAmount()) < 0) {
@@ -107,6 +127,12 @@ public class TransferService {
         }
     }
 
+    /**
+     * Retrieves a list of all money transfers associated with a given user (either as sender or receiver).
+     *
+     * @param username The username of the user whose transfers are to be retrieved.
+     * @return A {@link List} of {@link TransferResponseDto} representing the user's transfers.
+     */
     public List<TransferResponseDto> getUserTransfers(String username) {
         List<Transfer> transfers = transferRepository.findByUserUsername(username);
         return transfers.stream()
@@ -119,6 +145,16 @@ public class TransferService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Retrieves a list of all money transfers associated with a specific card ID.
+     * Ensures that the card belongs to the authenticated user.
+     *
+     * @param cardId The ID of the card for which to retrieve transfers.
+     * @param username The username of the authenticated user.
+     * @return A {@link List} of {@link TransferResponseDto} representing the card's transfers.
+     * @throws CardNotFoundException if the card is not found.
+     * @throws AccessDeniedException if the card does not belong to the authenticated user.
+     */
     public List<TransferResponseDto> getCardTransfers(Long cardId, String username) {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new CardNotFoundException("Card not found"));
@@ -138,6 +174,15 @@ public class TransferService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Retrieves details of a specific transfer by its ID.
+     * Ensures that the transfer is associated with the authenticated user (either as sender or receiver).
+     *
+     * @param transferId The ID of the transfer to retrieve.
+     * @param username The username of the authenticated user.
+     * @return A {@link TransferResponseDto} representing the retrieved transfer.
+     * @throws InvalidTransferException if the transfer is not found or not associated with the user.
+     */
     public TransferResponseDto getTransfer(Long transferId, String username) {
         Transfer transfer = transferRepository.findById(transferId)
                 .orElseThrow(() -> new ResourceNotFoundException("Transfer not found"));

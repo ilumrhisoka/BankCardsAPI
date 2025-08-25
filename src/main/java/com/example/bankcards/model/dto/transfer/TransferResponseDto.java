@@ -2,14 +2,16 @@ package com.example.bankcards.model.dto.transfer;
 
 import com.example.bankcards.model.entity.enums.TransferStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Data
+/**
+ * DTO for transfer response.
+ */
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Schema(description = "DTO for transfer response, representing information about a completed transfer.")

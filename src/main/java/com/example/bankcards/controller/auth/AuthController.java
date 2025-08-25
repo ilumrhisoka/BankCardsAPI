@@ -22,6 +22,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.Optional;
 
+/**
+ * REST controller for user authentication operations.
+ * This controller handles user login, registration, and token refreshing.
+ */
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Authentication", description = "User authentication and registration operations")
@@ -31,6 +35,14 @@ public class AuthController {
     private final AuthService authService;
     private final UserRepository userRepository;
 
+    /**
+     * Handles user login. Authenticates the user with the provided credentials
+     * and returns an access token and a refresh token upon successful authentication.
+     *
+     * @param loginRequest DTO containing username and password.
+     * @return A {@link ResponseEntity} with {@link AuthResponseDto} on success (HTTP 200 OK)
+     *         or an error message on failure (HTTP 401 Unauthorized).
+     */
     @Operation(summary = "User login",
             description = "Authenticates a user and returns JWT tokens (access and refresh).")
     @ApiResponses(value = {
@@ -48,6 +60,14 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password.");
     }
 
+    /**
+     * Handles new user registration. Registers a new user with the provided details
+     * and returns an access token and a refresh token upon successful registration.
+     *
+     * @param registerRequest DTO containing username, email, and password for registration.
+     * @return A {@link ResponseEntity} with {@link AuthResponseDto} on success (HTTP 201 Created)
+     *         or an error message on failure (HTTP 400 Bad Request if username exists or data is invalid).
+     */
     @Operation(summary = "User registration",
             description = "Registers a new user and returns JWT tokens upon successful registration.")
     @ApiResponses(value = {
@@ -70,6 +90,14 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new DuplicateUsernameException("Username already exists or invalid registration data"));
     }
 
+    /**
+     * Refreshes the access token using a provided refresh token.
+     * Issues a new access token and refresh token pair.
+     *
+     * @param refreshRequest DTO containing the refresh token string.
+     * @return A {@link ResponseEntity} with {@link AuthResponseDto} containing new tokens on success (HTTP 200 OK)
+     *         or an error message on failure (HTTP 400 Bad Request or 403 Forbidden).
+     */
     @Operation(summary = "Refresh access token",
             description = "Uses a refresh token to obtain a new access token and refresh token pair.")
     @ApiResponses(value = {

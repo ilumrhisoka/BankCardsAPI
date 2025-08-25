@@ -9,6 +9,9 @@ import org.springframework.http.HttpStatus;
 import java.time.LocalDateTime;
 import java.util.Map;
 
+/**
+ * Generic DTO for error responses.
+ */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor

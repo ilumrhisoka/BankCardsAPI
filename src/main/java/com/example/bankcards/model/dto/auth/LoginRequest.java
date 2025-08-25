@@ -4,8 +4,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+/**
+ * DTO for user login request.
+ */
+@Getter
+@Setter
 @Schema(description = "DTO for user login request.")
 public class LoginRequest {
     @NotBlank(message = "Username cannot be empty")
