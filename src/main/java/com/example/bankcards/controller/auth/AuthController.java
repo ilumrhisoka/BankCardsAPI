@@ -1,12 +1,14 @@
 package com.example.bankcards.controller.auth;
 
+import com.example.bankcards.exception.user.DuplicateUsernameException;
 import com.example.bankcards.model.dto.auth.AuthResponseDto;
 import com.example.bankcards.model.dto.auth.LoginRequest;
 import com.example.bankcards.model.dto.auth.RefreshRequest;
 import com.example.bankcards.model.dto.auth.RegisterRequest;
 import com.example.bankcards.model.entity.User;
 import com.example.bankcards.repository.UserRepository;
-import com.example.bankcards.service.AuthService;
+import com.example.bankcards.service.auth.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,7 +40,7 @@ public class AuthController {
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = String.class, example = "Invalid username or password.")))
     })
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
         AuthResponseDto response = authService.login(loginRequest.getUsername(), loginRequest.getPassword());
         if (response != null) {
             return ResponseEntity.ok(response);
@@ -55,17 +57,17 @@ public class AuthController {
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = String.class, example = "Username already exists or invalid registration data.")))
     })
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
-        AuthResponseDto token = authService.register(
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest) {
+        AuthResponseDto user = authService.register(
                 registerRequest.getUsername(),
                 registerRequest.getEmail(),
                 registerRequest.getPassword()
         );
         Optional<User> registeredUser = userRepository.findByUsername(registerRequest.getUsername());
-        if (registeredUser.isPresent()) {
-            return ResponseEntity.status(HttpStatus.CREATED).body(token);
+        if (registeredUser.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(user);
         }
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Username already exists or invalid registration data.");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new DuplicateUsernameException("Username already exists or invalid registration data"));
     }
 
     @Operation(summary = "Refresh access token",
@@ -79,7 +81,7 @@ public class AuthController {
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = String.class, example = "Invalid or expired refresh token.")))
     })
     @PostMapping("/refresh-token")
-    public ResponseEntity<?> refreshToken(@RequestBody RefreshRequest refreshRequest) {
+    public ResponseEntity<?> refreshToken(@Valid @RequestBody RefreshRequest refreshRequest) {
         String refreshToken = refreshRequest.getRefreshToken();
         if (refreshToken == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);

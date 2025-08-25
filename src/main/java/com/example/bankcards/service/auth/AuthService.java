@@ -1,4 +1,4 @@
-package com.example.bankcards.service;
+package com.example.bankcards.service.auth;
 
 import com.example.bankcards.exception.user.AuthenticationFailedException;
 import com.example.bankcards.exception.user.DuplicateUsernameException;
@@ -37,7 +37,6 @@ public class AuthService {
             if(passwordEncoder.matches(password, user.getPassword())) {
                 String token = jwtUtil.generateToken(user.getUsername(), user.getRole().name());
                 RefreshToken refreshToken = createAndSaveRefreshToken(user);
-                refreshTokenRepository.save(refreshToken);
                 log.info("Login Success for user: {}", username);
                 return new AuthResponseDto(token, refreshToken.getToken());
             }
