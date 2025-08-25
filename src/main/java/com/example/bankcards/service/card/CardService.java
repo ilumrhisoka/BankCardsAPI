@@ -9,7 +9,7 @@ import com.example.bankcards.model.entity.enums.CardStatus;
 import com.example.bankcards.exception.card.CardNotFoundException;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.UserRepository;
-import com.example.bankcards.util.mapper.CardDtoMapper;
+import com.example.bankcards.util.mapper.CardMapper; // Используем CardMapper
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -27,7 +27,7 @@ public class CardService {
     private final CardRepository cardRepository;
     private final UserRepository userRepository;
     private final CardEncryptionService cardEncryptionService;
-    private final CardDtoMapper cardDtoMapper;
+    private final CardMapper cardMapper;
 
     @Transactional
     public CardResponseDto createCard(CardCreateRequest request) {
@@ -46,19 +46,26 @@ public class CardService {
 
         Card savedCard = cardRepository.save(card);
         log.info("Created card with ID: {}", savedCard.getId());
-
-        return cardDtoMapper.toCardResponseDto(savedCard);
+        CardResponseDto dto = cardMapper.toCardResponseDto(savedCard);
+        dto.setCardNumber(cardEncryptionService.getMaskedCardNumber(savedCard.getCardNumber()));
+        return dto;
     }
 
     public Page<CardResponseDto> getAllCards(Pageable pageable) {
         Page<Card> cards = cardRepository.findAll(pageable);
-        return cards.map(cardDtoMapper::toCardResponseDto);
+        return cards.map(card -> {
+            CardResponseDto dto = cardMapper.toCardResponseDto(card);
+            dto.setCardNumber(cardEncryptionService.getMaskedCardNumber(card.getCardNumber()));
+            return dto;
+        });
     }
 
     public CardResponseDto getCardById(Long id) {
         Card card = cardRepository.findById(id)
                 .orElseThrow(() -> new CardNotFoundException("Card not found"));
-        return cardDtoMapper.toCardResponseDto(card);
+        CardResponseDto dto = cardMapper.toCardResponseDto(card);
+        dto.setCardNumber(cardEncryptionService.getMaskedCardNumber(card.getCardNumber()));
+        return dto;
     }
 
     @Transactional
@@ -81,8 +88,9 @@ public class CardService {
 
         Card savedCard = cardRepository.save(card);
         log.info("Updated card with ID: {}", savedCard.getId());
-
-        return cardDtoMapper.toCardResponseDto(savedCard);
+        CardResponseDto dto = cardMapper.toCardResponseDto(savedCard);
+        dto.setCardNumber(cardEncryptionService.getMaskedCardNumber(savedCard.getCardNumber()));
+        return dto;
     }
 
     @Transactional
@@ -100,7 +108,9 @@ public class CardService {
         card.setCardStatus(CardStatus.BLOCKED);
         Card savedCard = cardRepository.save(card);
         log.info("Blocked card with ID: {}", id);
-        return cardDtoMapper.toCardResponseDto(savedCard);
+        CardResponseDto dto = cardMapper.toCardResponseDto(savedCard);
+        dto.setCardNumber(cardEncryptionService.getMaskedCardNumber(savedCard.getCardNumber()));
+        return dto;
     }
 
     @Transactional
@@ -110,7 +120,8 @@ public class CardService {
         card.setCardStatus(CardStatus.ACTIVE);
         Card savedCard = cardRepository.save(card);
         log.info("Activated card with ID: {}", id);
-        return cardDtoMapper.toCardResponseDto(savedCard);
+        CardResponseDto dto = cardMapper.toCardResponseDto(savedCard);
+        dto.setCardNumber(cardEncryptionService.getMaskedCardNumber(savedCard.getCardNumber()));
+        return dto;
     }
-
 }

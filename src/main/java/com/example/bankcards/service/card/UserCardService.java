@@ -8,16 +8,13 @@ import com.example.bankcards.exception.dto.ForbiddenException;
 import com.example.bankcards.exception.card.CardBlockedException;
 import com.example.bankcards.exception.card.CardNotFoundException;
 import com.example.bankcards.repository.CardRepository;
-import com.example.bankcards.util.mapper.CardDtoMapper;
-import com.example.bankcards.util.CardMaskingUtil;
+import com.example.bankcards.util.mapper.CardMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -28,8 +25,9 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class UserCardService {
 
-    private final CardDtoMapper cardDtoMapper;
+    private final CardMapper cardMapper;
     private final CardRepository cardRepository;
+    private final CardEncryptionService cardEncryptionService;
 
     public BigDecimal getTotalBalance(String username) {
         List<Card> cards = cardRepository.findByUserUsername(username);
@@ -50,7 +48,7 @@ public class UserCardService {
         if (card.getCardStatus() != CardStatus.BLOCKED) {
             throw new CardNotBlockedException("Card is not blocked");
         }
-        log.info("User {} requested unblock for card {}", username, CardMaskingUtil.maskCardNumber(card.getCardNumber()));
+        log.info("User {} requested unblock for card {}", username, cardEncryptionService.getMaskedCardNumber(card.getCardNumber()));
     }
 
     @Transactional
@@ -64,12 +62,16 @@ public class UserCardService {
         if (card.getCardStatus() == CardStatus.BLOCKED) {
             throw new CardBlockedException("Card is already blocked");
         }
-        log.info("User {} requested block for card {}", username, CardMaskingUtil.maskCardNumber(card.getCardNumber()));
+        log.info("User {} requested block for card {}", username, cardEncryptionService.getMaskedCardNumber(card.getCardNumber()));
     }
 
     public Page<CardResponseDto> getUserCards(String username, Pageable pageable) {
         Page<Card> cardsPage = cardRepository.findByUserUsernamePageable(username, pageable);
-        return cardsPage.map(cardDtoMapper::toCardResponseDto);
+        return cardsPage.map(card -> {
+            CardResponseDto dto = cardMapper.toCardResponseDto(card);
+            dto.setCardNumber(cardEncryptionService.getMaskedCardNumber(card.getCardNumber()));
+            return dto;
+        });
     }
 
     public CardResponseDto getUserCardById(Long cardId, String username) {
@@ -78,6 +80,8 @@ public class UserCardService {
         if(!card.getUser().getUsername().equals(username)) {
             throw new ForbiddenException("Access denied: Card doesn't belong to user");
         }
-        return cardDtoMapper.toCardResponseDto(card);
+        CardResponseDto dto = cardMapper.toCardResponseDto(card);
+        dto.setCardNumber(cardEncryptionService.getMaskedCardNumber(card.getCardNumber()));
+        return dto;
     }
 }

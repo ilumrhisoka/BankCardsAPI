@@ -15,8 +15,8 @@ import com.example.bankcards.exception.card.InsufficientFundsException;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.TransferRepository;
 import com.example.bankcards.service.card.CardEncryptionService;
-import com.example.bankcards.util.CardMaskingUtil;
-import com.example.bankcards.util.mapper.TransferDtoMapper;
+// import com.example.bankcards.util.CardMaskingUtil; // Удаляем, используем CardEncryptionService
+import com.example.bankcards.util.mapper.TransferMapper; // Используем TransferMapper
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,13 +35,12 @@ public class TransferService {
     private final CardEncryptionService cardEncryptionService;
     private final TransferRepository transferRepository;
     private final CardRepository cardRepository;
-    private final TransferDtoMapper transferDtoMapper;
+    private final TransferMapper transferMapper;
 
     @Transactional
     public TransferResponseDto createTransfer(TransferRequest request, String username) {
         Card fromCard = cardRepository.findById(request.getFromCardId())
                 .orElseThrow(() -> new CardNotFoundException("Source card not found with ID: " + request.getFromCardId()));
-
 
         if (!fromCard.getUser().getUsername().equals(username)) {
             throw new ForbiddenException("Access denied: Card doesn't belong to user");
@@ -49,14 +48,13 @@ public class TransferService {
         if (fromCard.getCardStatus() != CardStatus.ACTIVE) {
             throw new CardBlockedException("Source card is not active. Current status: " + fromCard.getCardStatus());
         }
+
         Card toCard = findCardByNumber(request.getToCardNumber());
 
-        if (toCard == null) {
-            throw new CardNotFoundException("Destination card not found with number: " + CardMaskingUtil.maskCardNumber(request.getToCardNumber()));
-        }
         if (!toCard.getUser().getUsername().equals(username)) {
             throw new ForbiddenException("Access denied: Target card doesn't belong to the same user");
         }
+
         if (toCard.getCardStatus() != CardStatus.ACTIVE) {
             throw new CardBlockedException("Destination card is not active. Current status: " + toCard.getCardStatus());
         }
@@ -89,19 +87,21 @@ public class TransferService {
                     cardEncryptionService.getMaskedCardNumber(toCard.getCardNumber()),
                     request.getAmount());
 
-            return transferDtoMapper.toTransferResponseDto(savedTransfer, username);
+            TransferResponseDto dto = transferMapper.toTransferResponseDto(savedTransfer);
+            dto.setFromCardNumber(cardEncryptionService.getMaskedCardNumber(savedTransfer.getFromCard().getCardNumber()));
+            dto.setToCardNumber(cardEncryptionService.getMaskedCardNumber(savedTransfer.getToCard().getCardNumber()));
+            return dto;
 
         } catch (Exception e) {
             log.error("Transfer failed due to: {}", e.getMessage());
 
             Transfer failedTransfer = new Transfer();
             failedTransfer.setFromCard(fromCard);
-            failedTransfer.setToCard(toCard);
             failedTransfer.setAmount(request.getAmount());
             failedTransfer.setTransferDate(LocalDateTime.now());
             failedTransfer.setStatus(TransferStatus.FAILED);
 
-            Transfer savedTransfer = transferRepository.save(failedTransfer);
+            Transfer savedFailedTransfer = transferRepository.save(failedTransfer);
 
             throw new BadRequestException("Transfer failed: " + e.getMessage());
         }
@@ -110,7 +110,12 @@ public class TransferService {
     public List<TransferResponseDto> getUserTransfers(String username) {
         List<Transfer> transfers = transferRepository.findByUserUsername(username);
         return transfers.stream()
-                .map(transfer -> transferDtoMapper.toTransferResponseDto(transfer, username))
+                .map(transfer -> {
+                    TransferResponseDto dto = transferMapper.toTransferResponseDto(transfer);
+                    dto.setFromCardNumber(cardEncryptionService.getMaskedCardNumber(transfer.getFromCard().getCardNumber()));
+                    dto.setToCardNumber(cardEncryptionService.getMaskedCardNumber(transfer.getToCard().getCardNumber()));
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -124,7 +129,12 @@ public class TransferService {
 
         List<Transfer> transfers = transferRepository.findByCardId(cardId);
         return transfers.stream()
-                .map(transfer -> transferDtoMapper.toTransferResponseDto(transfer, username))
+                .map(transfer -> {
+                    TransferResponseDto dto = transferMapper.toTransferResponseDto(transfer);
+                    dto.setFromCardNumber(cardEncryptionService.getMaskedCardNumber(transfer.getFromCard().getCardNumber()));
+                    dto.setToCardNumber(cardEncryptionService.getMaskedCardNumber(transfer.getToCard().getCardNumber()));
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -136,10 +146,13 @@ public class TransferService {
                 transfer.getToCard().getUser().getUsername().equals(username);
 
         if (!isParticipant) {
-            throw new ForbiddenException("Access denied: User " + " is not participant of this transfer");
+            throw new ForbiddenException("Access denied: User " + username + " is not participant of this transfer");
         }
 
-        return transferDtoMapper.toTransferResponseDto(transfer, username);
+        TransferResponseDto dto = transferMapper.toTransferResponseDto(transfer);
+        dto.setFromCardNumber(cardEncryptionService.getMaskedCardNumber(transfer.getFromCard().getCardNumber()));
+        dto.setToCardNumber(cardEncryptionService.getMaskedCardNumber(transfer.getToCard().getCardNumber()));
+        return dto;
     }
 
     private Card findCardByNumber(String plainCardNumber) {

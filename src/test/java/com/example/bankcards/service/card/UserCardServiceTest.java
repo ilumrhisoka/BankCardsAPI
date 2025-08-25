@@ -10,14 +10,12 @@ import com.example.bankcards.model.entity.User;
 import com.example.bankcards.model.entity.enums.CardStatus;
 import com.example.bankcards.model.entity.enums.Role;
 import com.example.bankcards.repository.CardRepository;
-import com.example.bankcards.util.CardMaskingUtil;
-import com.example.bankcards.util.mapper.CardDtoMapper;
+import com.example.bankcards.util.mapper.CardMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -30,7 +28,6 @@ import java.util.Collections;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,7 +37,10 @@ class UserCardServiceTest {
     private CardRepository cardRepository;
 
     @Mock
-    private CardDtoMapper cardDtoMapper;
+    private CardMapper cardMapper;
+
+    @Mock
+    private CardEncryptionService cardEncryptionService;
 
     @InjectMocks
     private UserCardService userCardService;
@@ -115,6 +115,7 @@ class UserCardServiceTest {
 
         assertThrows(CardNotFoundException.class, () -> userCardService.requestUnblock(99L, "testuser"));
         verify(cardRepository).findById(99L);
+        verifyNoInteractions(cardEncryptionService);
     }
 
     @Test
@@ -122,32 +123,43 @@ class UserCardServiceTest {
         Card cardOfAnotherUser = new Card();
         cardOfAnotherUser.setId(3L);
         cardOfAnotherUser.setUser(anotherUser);
+        cardOfAnotherUser.setCardNumber("encrypted-3333");
         cardOfAnotherUser.setCardStatus(CardStatus.BLOCKED);
 
         when(cardRepository.findById(3L)).thenReturn(Optional.of(cardOfAnotherUser));
 
         assertThrows(ForbiddenException.class, () -> userCardService.requestUnblock(3L, "testuser"));
         verify(cardRepository).findById(3L);
+        verifyNoInteractions(cardEncryptionService);
     }
 
     @Test
     void requestUnblock_whenCardIsNotBlocked_shouldThrowCardNotBlockedException() {
-        when(cardRepository.findById(1L)).thenReturn(Optional.of(activeCard)); // Use activeCard for unblock
+        when(cardRepository.findById(1L)).thenReturn(Optional.of(activeCard));
 
         assertThrows(CardNotBlockedException.class, () -> userCardService.requestUnblock(1L, "testuser"));
         verify(cardRepository).findById(1L);
+        verifyNoInteractions(cardEncryptionService);
+    }
+
+    @Test
+    void requestUnblock_shouldLogUnblockRequest() {
+        when(cardRepository.findById(2L)).thenReturn(Optional.of(blockedCard));
+        when(cardEncryptionService.getMaskedCardNumber("encrypted-2222")).thenReturn("masked-2222");
+
+        assertDoesNotThrow(() -> userCardService.requestUnblock(2L, "testuser"));
+        verify(cardRepository).findById(2L);
+        verify(cardEncryptionService).getMaskedCardNumber("encrypted-2222");
     }
 
     @Test
     void requestBlock_shouldLogBlockRequest() {
-        when(cardRepository.findById(1L)).thenReturn(Optional.of(activeCard)); // Use activeCard for block
-        // Mock static method CardMaskingUtil.maskCardNumber
-        try (MockedStatic<CardMaskingUtil> mocked = mockStatic(CardMaskingUtil.class)) {
-            mocked.when(() -> CardMaskingUtil.maskCardNumber(anyString())).thenReturn("masked-1111");
+        when(cardRepository.findById(1L)).thenReturn(Optional.of(activeCard));
+        when(cardEncryptionService.getMaskedCardNumber("encrypted-1111")).thenReturn("masked-1111");
 
-            assertDoesNotThrow(() -> userCardService.requestBlock(1L, "testuser"));
-            verify(cardRepository).findById(1L);
-        }
+        assertDoesNotThrow(() -> userCardService.requestBlock(1L, "testuser"));
+        verify(cardRepository).findById(1L);
+        verify(cardEncryptionService).getMaskedCardNumber("encrypted-1111");
     }
 
     @Test
@@ -156,6 +168,7 @@ class UserCardServiceTest {
 
         assertThrows(CardNotFoundException.class, () -> userCardService.requestBlock(99L, "testuser"));
         verify(cardRepository).findById(99L);
+        verifyNoInteractions(cardEncryptionService);
     }
 
     @Test
@@ -163,30 +176,41 @@ class UserCardServiceTest {
         Card cardOfAnotherUser = new Card();
         cardOfAnotherUser.setId(3L);
         cardOfAnotherUser.setUser(anotherUser);
+        cardOfAnotherUser.setCardNumber("encrypted-3333");
         cardOfAnotherUser.setCardStatus(CardStatus.ACTIVE);
 
         when(cardRepository.findById(3L)).thenReturn(Optional.of(cardOfAnotherUser));
 
         assertThrows(ForbiddenException.class, () -> userCardService.requestBlock(3L, "testuser"));
         verify(cardRepository).findById(3L);
+        verifyNoInteractions(cardEncryptionService);
     }
 
     @Test
     void requestBlock_whenCardIsAlreadyBlocked_shouldThrowCardBlockedException() {
-        when(cardRepository.findById(2L)).thenReturn(Optional.of(blockedCard)); // Use blockedCard for block
+        when(cardRepository.findById(2L)).thenReturn(Optional.of(blockedCard));
 
         assertThrows(CardBlockedException.class, () -> userCardService.requestBlock(2L, "testuser"));
         verify(cardRepository).findById(2L);
+        verifyNoInteractions(cardEncryptionService);
     }
 
     @Test
     void getUserCards_shouldReturnPageOfCardResponseDto() {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Card> cardPage = new PageImpl<>(Collections.singletonList(activeCard), pageable, 1);
-        Page<CardResponseDto> expectedDtoPage = new PageImpl<>(Collections.singletonList(activeCardResponseDto), pageable, 1);
+
+        CardResponseDto mapperReturnDto = new CardResponseDto();
+        mapperReturnDto.setId(1L);
+        mapperReturnDto.setCardHolder("Test User");
+        mapperReturnDto.setExpiryDate(LocalDate.of(2025, 12, 31));
+        mapperReturnDto.setBalance(BigDecimal.valueOf(1000.00));
+        mapperReturnDto.setCardStatus(CardStatus.ACTIVE);
+        mapperReturnDto.setUsername(testUser.getUsername());
 
         when(cardRepository.findByUserUsernamePageable("testuser", pageable)).thenReturn(cardPage);
-        when(cardDtoMapper.toCardResponseDto(activeCard)).thenReturn(activeCardResponseDto);
+        when(cardMapper.toCardResponseDto(activeCard)).thenReturn(mapperReturnDto);
+        when(cardEncryptionService.getMaskedCardNumber("encrypted-1111")).thenReturn("masked-1111");
 
         Page<CardResponseDto> result = userCardService.getUserCards("testuser", pageable);
 
@@ -194,21 +218,34 @@ class UserCardServiceTest {
         assertFalse(result.isEmpty());
         assertEquals(1, result.getTotalElements());
         assertEquals(activeCardResponseDto.getId(), result.getContent().get(0).getId());
+        assertEquals(activeCardResponseDto.getCardNumber(), result.getContent().get(0).getCardNumber());
         verify(cardRepository).findByUserUsernamePageable("testuser", pageable);
-        verify(cardDtoMapper).toCardResponseDto(activeCard);
+        verify(cardMapper).toCardResponseDto(activeCard);
+        verify(cardEncryptionService).getMaskedCardNumber("encrypted-1111");
     }
 
     @Test
     void getUserCardById_whenCardExistsAndBelongsToUser_shouldReturnCardResponseDto() {
+        CardResponseDto mapperReturnDto = new CardResponseDto();
+        mapperReturnDto.setId(1L);
+        mapperReturnDto.setCardHolder("Test User");
+        mapperReturnDto.setExpiryDate(LocalDate.of(2025, 12, 31));
+        mapperReturnDto.setBalance(BigDecimal.valueOf(1000.00));
+        mapperReturnDto.setCardStatus(CardStatus.ACTIVE);
+        mapperReturnDto.setUsername(testUser.getUsername());
+
         when(cardRepository.findById(1L)).thenReturn(Optional.of(activeCard));
-        when(cardDtoMapper.toCardResponseDto(activeCard)).thenReturn(activeCardResponseDto);
+        when(cardMapper.toCardResponseDto(activeCard)).thenReturn(mapperReturnDto);
+        when(cardEncryptionService.getMaskedCardNumber("encrypted-1111")).thenReturn("masked-1111");
 
         CardResponseDto result = userCardService.getUserCardById(1L, "testuser");
 
         assertNotNull(result);
         assertEquals(activeCardResponseDto.getId(), result.getId());
+        assertEquals(activeCardResponseDto.getCardNumber(), result.getCardNumber());
         verify(cardRepository).findById(1L);
-        verify(cardDtoMapper).toCardResponseDto(activeCard);
+        verify(cardMapper).toCardResponseDto(activeCard);
+        verify(cardEncryptionService).getMaskedCardNumber("encrypted-1111");
     }
 
     @Test
@@ -217,7 +254,7 @@ class UserCardServiceTest {
 
         assertThrows(CardNotFoundException.class, () -> userCardService.getUserCardById(99L, "testuser"));
         verify(cardRepository).findById(99L);
-        verifyNoInteractions(cardDtoMapper);
+        verifyNoInteractions(cardMapper, cardEncryptionService);
     }
 
     @Test
@@ -225,11 +262,12 @@ class UserCardServiceTest {
         Card cardOfAnotherUser = new Card();
         cardOfAnotherUser.setId(3L);
         cardOfAnotherUser.setUser(anotherUser);
+        cardOfAnotherUser.setCardNumber("encrypted-3333");
 
         when(cardRepository.findById(3L)).thenReturn(Optional.of(cardOfAnotherUser));
 
         assertThrows(ForbiddenException.class, () -> userCardService.getUserCardById(3L, "testuser"));
         verify(cardRepository).findById(3L);
-        verifyNoInteractions(cardDtoMapper);
+        verifyNoInteractions(cardMapper, cardEncryptionService);
     }
 }

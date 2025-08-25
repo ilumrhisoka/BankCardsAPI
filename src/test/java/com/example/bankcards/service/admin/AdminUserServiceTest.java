@@ -6,7 +6,7 @@ import com.example.bankcards.model.dto.user.UserUpdateRequest;
 import com.example.bankcards.model.entity.User;
 import com.example.bankcards.model.entity.enums.Role;
 import com.example.bankcards.repository.UserRepository;
-import com.example.bankcards.util.mapper.UserDtoMapper;
+import com.example.bankcards.util.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,7 +28,7 @@ class AdminUserServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private UserDtoMapper userDtoMapper;
+    private UserMapper userMapper;
 
     @InjectMocks
     private AdminUserService adminUserService;
@@ -51,7 +51,7 @@ class AdminUserServiceTest {
     @Test
     void getAllUsers_shouldReturnUserList() {
         when(userRepository.findAll()).thenReturn(Collections.singletonList(testUser));
-        when(userDtoMapper.toUserResponseDto(testUser)).thenReturn(testUserResponseDto);
+        when(userMapper.toUserResponseDto(testUser)).thenReturn(testUserResponseDto);
 
         List<UserResponseDto> result = adminUserService.getAllUsers();
 
@@ -59,18 +59,20 @@ class AdminUserServiceTest {
         assertEquals(1, result.size());
         assertEquals("testuser", result.get(0).getUsername());
         verify(userRepository).findAll();
+        verify(userMapper).toUserResponseDto(testUser);
     }
 
     @Test
     void getUserById_whenUserExists_shouldReturnUser() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(userDtoMapper.toUserResponseDto(testUser)).thenReturn(testUserResponseDto);
+        when(userMapper.toUserResponseDto(testUser)).thenReturn(testUserResponseDto);
 
         UserResponseDto result = adminUserService.getUserById(1L);
 
         assertNotNull(result);
         assertEquals(1L, result.getId());
         verify(userRepository).findById(1L);
+        verify(userMapper).toUserResponseDto(testUser);
     }
 
     @Test
@@ -80,22 +82,24 @@ class AdminUserServiceTest {
         assertThrows(UserNotFoundException.class, () -> {
             adminUserService.getUserById(99L);
         });
+        verify(userRepository).findById(99L);
+        verifyNoInteractions(userMapper);
     }
 
     @Test
     void updateUser_whenUserExists_shouldUpdateAndReturnUser() {
         UserUpdateRequest updateRequest = new UserUpdateRequest("updatedUser", "updated@example.com", Role.ROLE_ADMIN);
+        User updatedTestUser = new User("updatedUser", "updated@example.com", "password", Role.ROLE_ADMIN);
+        updatedTestUser.setId(1L);
+        UserResponseDto updatedUserResponseDto = new UserResponseDto();
+        updatedUserResponseDto.setId(1L);
+        updatedUserResponseDto.setUsername("updatedUser");
+        updatedUserResponseDto.setEmail("updated@example.com");
+        updatedUserResponseDto.setRole(Role.ROLE_ADMIN);
+
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(userDtoMapper.toUserResponseDto(any(User.class))).thenAnswer(invocation -> {
-            User savedUser = invocation.getArgument(0);
-            UserResponseDto dto = new UserResponseDto();
-            dto.setId(savedUser.getId());
-            dto.setUsername(savedUser.getUsername());
-            dto.setEmail(savedUser.getEmail());
-            dto.setRole(savedUser.getRole());
-            return dto;
-        });
+        when(userRepository.save(any(User.class))).thenReturn(updatedTestUser);
+        when(userMapper.toUserResponseDto(updatedTestUser)).thenReturn(updatedUserResponseDto);
 
         UserResponseDto result = adminUserService.updateUser(1L, updateRequest);
 
@@ -103,7 +107,14 @@ class AdminUserServiceTest {
         assertEquals("updatedUser", result.getUsername());
         assertEquals("updated@example.com", result.getEmail());
         assertEquals(Role.ROLE_ADMIN, result.getRole());
+
+        assertEquals("updatedUser", testUser.getUsername());
+        assertEquals("updated@example.com", testUser.getEmail());
+        assertEquals(Role.ROLE_ADMIN, testUser.getRole());
+
+        verify(userRepository).findById(1L);
         verify(userRepository).save(testUser);
+        verify(userMapper).toUserResponseDto(updatedTestUser);
     }
 
     @Test
@@ -114,6 +125,9 @@ class AdminUserServiceTest {
         assertThrows(UserNotFoundException.class, () -> {
             adminUserService.updateUser(99L, updateRequest);
         });
+        verify(userRepository).findById(99L);
+        verifyNoInteractions(userMapper);
+        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
@@ -134,6 +148,7 @@ class AdminUserServiceTest {
         assertThrows(UserNotFoundException.class, () -> {
             adminUserService.deleteUser(99L);
         });
+        verify(userRepository).existsById(99L);
         verify(userRepository, never()).deleteById(anyLong());
     }
 }

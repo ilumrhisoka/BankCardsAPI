@@ -10,7 +10,7 @@ import com.example.bankcards.model.entity.enums.CardStatus;
 import com.example.bankcards.model.entity.enums.Role;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.UserRepository;
-import com.example.bankcards.util.mapper.CardDtoMapper;
+import com.example.bankcards.util.mapper.CardMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,7 +45,7 @@ class CardServiceTest {
     private CardEncryptionService cardEncryptionService;
 
     @Mock
-    private CardDtoMapper cardDtoMapper;
+    private CardMapper cardMapper;
 
     @InjectMocks
     private CardService cardService;
@@ -88,20 +88,33 @@ class CardServiceTest {
                 1L
         );
 
+        CardResponseDto mapperReturnDto = new CardResponseDto();
+        mapperReturnDto.setId(1L);
+        mapperReturnDto.setCardHolder("Test User");
+        mapperReturnDto.setExpiryDate(LocalDate.of(2025, 12, 31));
+        mapperReturnDto.setBalance(BigDecimal.valueOf(1000.00));
+        mapperReturnDto.setCardStatus(CardStatus.ACTIVE);
+        mapperReturnDto.setUsername(testUser.getUsername());
+
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         when(cardEncryptionService.encryptCardNumber(request.getCardNumber())).thenReturn("encrypted-1234");
         when(cardRepository.save(any(Card.class))).thenReturn(testCard);
-        when(cardDtoMapper.toCardResponseDto(any(Card.class))).thenReturn(testCardResponseDto);
+
+        when(cardMapper.toCardResponseDto(any(Card.class))).thenReturn(mapperReturnDto);
+        when(cardEncryptionService.getMaskedCardNumber("encrypted-1234")).thenReturn("masked-1234");
+
 
         CardResponseDto result = cardService.createCard(request);
 
         assertNotNull(result);
         assertEquals(testCardResponseDto.getId(), result.getId());
         assertEquals(testCardResponseDto.getCardHolder(), result.getCardHolder());
+        assertEquals(testCardResponseDto.getCardNumber(), result.getCardNumber());
         verify(userRepository).findById(1L);
         verify(cardEncryptionService).encryptCardNumber("1234567890123456");
         verify(cardRepository).save(any(Card.class));
-        verify(cardDtoMapper).toCardResponseDto(any(Card.class));
+        verify(cardMapper).toCardResponseDto(any(Card.class));
+        verify(cardEncryptionService).getMaskedCardNumber("encrypted-1234");
     }
 
     @Test
@@ -118,17 +131,25 @@ class CardServiceTest {
 
         assertThrows(UsernameNotFoundException.class, () -> cardService.createCard(request));
         verify(userRepository).findById(99L);
-        verifyNoInteractions(cardEncryptionService, cardRepository, cardDtoMapper);
+        verifyNoInteractions(cardEncryptionService, cardRepository, cardMapper);
     }
 
     @Test
     void getAllCards_shouldReturnPageOfCardResponseDto() {
         Pageable pageable = PageRequest.of(0, 10);
         Page<Card> cardPage = new PageImpl<>(Collections.singletonList(testCard), pageable, 1);
-        Page<CardResponseDto> expectedDtoPage = new PageImpl<>(Collections.singletonList(testCardResponseDto), pageable, 1);
+
+        CardResponseDto mapperReturnDto = new CardResponseDto();
+        mapperReturnDto.setId(1L);
+        mapperReturnDto.setCardHolder("Test User");
+        mapperReturnDto.setExpiryDate(LocalDate.of(2025, 12, 31));
+        mapperReturnDto.setBalance(BigDecimal.valueOf(1000.00));
+        mapperReturnDto.setCardStatus(CardStatus.ACTIVE);
+        mapperReturnDto.setUsername(testUser.getUsername());
 
         when(cardRepository.findAll(pageable)).thenReturn(cardPage);
-        when(cardDtoMapper.toCardResponseDto(testCard)).thenReturn(testCardResponseDto);
+        when(cardMapper.toCardResponseDto(testCard)).thenReturn(mapperReturnDto);
+        when(cardEncryptionService.getMaskedCardNumber("encrypted-1234")).thenReturn("masked-1234");
 
         Page<CardResponseDto> result = cardService.getAllCards(pageable);
 
@@ -136,21 +157,34 @@ class CardServiceTest {
         assertFalse(result.isEmpty());
         assertEquals(1, result.getTotalElements());
         assertEquals(testCardResponseDto.getId(), result.getContent().get(0).getId());
+        assertEquals(testCardResponseDto.getCardNumber(), result.getContent().get(0).getCardNumber());
         verify(cardRepository).findAll(pageable);
-        verify(cardDtoMapper).toCardResponseDto(testCard);
+        verify(cardMapper).toCardResponseDto(testCard);
+        verify(cardEncryptionService).getMaskedCardNumber("encrypted-1234");
     }
 
     @Test
     void getCardById_whenCardExists_shouldReturnCardResponseDto() {
+        CardResponseDto mapperReturnDto = new CardResponseDto();
+        mapperReturnDto.setId(1L);
+        mapperReturnDto.setCardHolder("Test User");
+        mapperReturnDto.setExpiryDate(LocalDate.of(2025, 12, 31));
+        mapperReturnDto.setBalance(BigDecimal.valueOf(1000.00));
+        mapperReturnDto.setCardStatus(CardStatus.ACTIVE);
+        mapperReturnDto.setUsername(testUser.getUsername());
+
         when(cardRepository.findById(1L)).thenReturn(Optional.of(testCard));
-        when(cardDtoMapper.toCardResponseDto(testCard)).thenReturn(testCardResponseDto);
+        when(cardMapper.toCardResponseDto(testCard)).thenReturn(mapperReturnDto);
+        when(cardEncryptionService.getMaskedCardNumber("encrypted-1234")).thenReturn("masked-1234");
 
         CardResponseDto result = cardService.getCardById(1L);
 
         assertNotNull(result);
         assertEquals(testCardResponseDto.getId(), result.getId());
+        assertEquals(testCardResponseDto.getCardNumber(), result.getCardNumber());
         verify(cardRepository).findById(1L);
-        verify(cardDtoMapper).toCardResponseDto(testCard);
+        verify(cardMapper).toCardResponseDto(testCard);
+        verify(cardEncryptionService).getMaskedCardNumber("encrypted-1234");
     }
 
     @Test
@@ -159,7 +193,7 @@ class CardServiceTest {
 
         assertThrows(CardNotFoundException.class, () -> cardService.getCardById(99L));
         verify(cardRepository).findById(99L);
-        verifyNoInteractions(cardDtoMapper);
+        verifyNoInteractions(cardMapper, cardEncryptionService);
     }
 
     @Test
@@ -169,18 +203,22 @@ class CardServiceTest {
         request.setCardStatus(CardStatus.BLOCKED);
         request.setBalance(BigDecimal.valueOf(1200.00));
 
+        testCard.setCardHolder(request.getCardHolder());
+        testCard.setCardStatus(request.getCardStatus());
+        testCard.setBalance(request.getBalance());
+
+        CardResponseDto mapperReturnDto = new CardResponseDto();
+        mapperReturnDto.setId(testCard.getId());
+        mapperReturnDto.setCardHolder(testCard.getCardHolder());
+        mapperReturnDto.setCardStatus(testCard.getCardStatus());
+        mapperReturnDto.setBalance(testCard.getBalance());
+        mapperReturnDto.setExpiryDate(testCard.getExpiryDate());
+        mapperReturnDto.setUsername(testCard.getUser().getUsername());
+
         when(cardRepository.findById(1L)).thenReturn(Optional.of(testCard));
-        when(cardRepository.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0)); // Return the saved card
-        when(cardDtoMapper.toCardResponseDto(any(Card.class))).thenAnswer(invocation -> {
-            Card updatedCard = invocation.getArgument(0);
-            CardResponseDto dto = new CardResponseDto();
-            dto.setId(updatedCard.getId());
-            dto.setCardHolder(updatedCard.getCardHolder());
-            dto.setCardStatus(updatedCard.getCardStatus());
-            dto.setBalance(updatedCard.getBalance());
-            // Copy other relevant fields for DTO
-            return dto;
-        });
+        when(cardRepository.save(any(Card.class))).thenReturn(testCard);
+        when(cardMapper.toCardResponseDto(any(Card.class))).thenReturn(mapperReturnDto);
+        when(cardEncryptionService.getMaskedCardNumber("encrypted-1234")).thenReturn("masked-1234");
 
         CardResponseDto result = cardService.updateCard(1L, request);
 
@@ -188,9 +226,11 @@ class CardServiceTest {
         assertEquals("Updated Holder", result.getCardHolder());
         assertEquals(CardStatus.BLOCKED, result.getCardStatus());
         assertEquals(BigDecimal.valueOf(1200.00), result.getBalance());
+        assertEquals("masked-1234", result.getCardNumber());
         verify(cardRepository).findById(1L);
-        verify(cardRepository).save(testCard); // Verify save was called with the modified testCard
-        verify(cardDtoMapper).toCardResponseDto(any(Card.class));
+        verify(cardRepository).save(testCard);
+        verify(cardMapper).toCardResponseDto(any(Card.class));
+        verify(cardEncryptionService).getMaskedCardNumber("encrypted-1234");
     }
 
     @Test
@@ -200,7 +240,7 @@ class CardServiceTest {
 
         assertThrows(CardNotFoundException.class, () -> cardService.updateCard(99L, request));
         verify(cardRepository).findById(99L);
-        verifyNoMoreInteractions(cardRepository); // Ensure save is not called
+        verifyNoMoreInteractions(cardRepository, cardMapper, cardEncryptionService);
     }
 
     @Test
@@ -225,23 +265,30 @@ class CardServiceTest {
 
     @Test
     void blockCard_shouldSetStatusToBlockedAndReturnDto() {
+        testCard.setCardStatus(CardStatus.BLOCKED);
+
+        CardResponseDto mapperReturnDto = new CardResponseDto();
+        mapperReturnDto.setId(testCard.getId());
+        mapperReturnDto.setCardStatus(testCard.getCardStatus());
+        mapperReturnDto.setCardHolder(testCard.getCardHolder());
+        mapperReturnDto.setExpiryDate(testCard.getExpiryDate());
+        mapperReturnDto.setBalance(testCard.getBalance());
+        mapperReturnDto.setUsername(testCard.getUser().getUsername());
+
         when(cardRepository.findById(1L)).thenReturn(Optional.of(testCard));
-        when(cardRepository.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(cardDtoMapper.toCardResponseDto(any(Card.class))).thenAnswer(invocation -> {
-            Card blockedCard = invocation.getArgument(0);
-            CardResponseDto dto = new CardResponseDto();
-            dto.setId(blockedCard.getId());
-            dto.setCardStatus(blockedCard.getCardStatus());
-            return dto;
-        });
+        when(cardRepository.save(any(Card.class))).thenReturn(testCard);
+        when(cardMapper.toCardResponseDto(any(Card.class))).thenReturn(mapperReturnDto);
+        when(cardEncryptionService.getMaskedCardNumber("encrypted-1234")).thenReturn("masked-1234");
 
         CardResponseDto result = cardService.blockCard(1L);
 
         assertNotNull(result);
         assertEquals(CardStatus.BLOCKED, result.getCardStatus());
+        assertEquals("masked-1234", result.getCardNumber());
         verify(cardRepository).findById(1L);
         verify(cardRepository).save(testCard);
-        assertEquals(CardStatus.BLOCKED, testCard.getCardStatus()); // Verify entity state changed
+        assertEquals(CardStatus.BLOCKED, testCard.getCardStatus());
+        verify(cardEncryptionService).getMaskedCardNumber("encrypted-1234");
     }
 
     @Test
@@ -251,28 +298,36 @@ class CardServiceTest {
         assertThrows(CardNotFoundException.class, () -> cardService.blockCard(99L));
         verify(cardRepository).findById(99L);
         verify(cardRepository, never()).save(any(Card.class));
+        verifyNoInteractions(cardMapper, cardEncryptionService);
     }
 
     @Test
     void activateCard_shouldSetStatusToActiveAndReturnDto() {
-        testCard.setCardStatus(CardStatus.BLOCKED); // Set initial status to blocked for activation test
+        testCard.setCardStatus(CardStatus.BLOCKED);
+        testCard.setCardStatus(CardStatus.ACTIVE);
+
+        CardResponseDto mapperReturnDto = new CardResponseDto();
+        mapperReturnDto.setId(testCard.getId());
+        mapperReturnDto.setCardStatus(testCard.getCardStatus());
+        mapperReturnDto.setCardHolder(testCard.getCardHolder());
+        mapperReturnDto.setExpiryDate(testCard.getExpiryDate());
+        mapperReturnDto.setBalance(testCard.getBalance());
+        mapperReturnDto.setUsername(testUser.getUsername());
+
         when(cardRepository.findById(1L)).thenReturn(Optional.of(testCard));
-        when(cardRepository.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(cardDtoMapper.toCardResponseDto(any(Card.class))).thenAnswer(invocation -> {
-            Card activatedCard = invocation.getArgument(0);
-            CardResponseDto dto = new CardResponseDto();
-            dto.setId(activatedCard.getId());
-            dto.setCardStatus(activatedCard.getCardStatus());
-            return dto;
-        });
+        when(cardRepository.save(any(Card.class))).thenReturn(testCard);
+        when(cardMapper.toCardResponseDto(any(Card.class))).thenReturn(mapperReturnDto);
+        when(cardEncryptionService.getMaskedCardNumber("encrypted-1234")).thenReturn("masked-1234");
 
         CardResponseDto result = cardService.activateCard(1L);
 
         assertNotNull(result);
         assertEquals(CardStatus.ACTIVE, result.getCardStatus());
+        assertEquals("masked-1234", result.getCardNumber());
         verify(cardRepository).findById(1L);
         verify(cardRepository).save(testCard);
-        assertEquals(CardStatus.ACTIVE, testCard.getCardStatus()); // Verify entity state changed
+        assertEquals(CardStatus.ACTIVE, testCard.getCardStatus());
+        verify(cardEncryptionService).getMaskedCardNumber("encrypted-1234");
     }
 
     @Test
@@ -282,5 +337,6 @@ class CardServiceTest {
         assertThrows(CardNotFoundException.class, () -> cardService.activateCard(99L));
         verify(cardRepository).findById(99L);
         verify(cardRepository, never()).save(any(Card.class));
+        verifyNoInteractions(cardMapper, cardEncryptionService);
     }
 }
