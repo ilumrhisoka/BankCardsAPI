@@ -199,7 +199,7 @@ API защищено с использованием Spring Security и JWT (JSO
         *   **Тело запроса:**
             ```json
             {
-              "cardNumber": "1234567890123456",
+              "cardNumber": "2200965478203084",
               "cardHolder": "JOHN DOE",
               "expiryDate": "2028-12-31",
               "balance": 1000.00,
@@ -212,7 +212,7 @@ API защищено с использованием Spring Security и JWT (JSO
         *   **Тело запроса:**
             ```json
             {
-              "cardNumber": "9876543210987654",
+              "cardNumber": "2200092730235687",
               "cardHolder": "JOHN DOE",
               "expiryDate": "2029-06-30",
               "balance": 500.00,
@@ -253,9 +253,8 @@ API защищено с использованием Spring Security и JWT (JSO
             ```json
             {
               "fromCardId": <ID_первой_карты_john.doe>, // Например, ID карты "1234...3456"
-              "toCardNumber": "9876543210987654",       // Полный номер второй карты john.doe
-              "amount": 50.00,
-              "description": "Оплата обеда"
+              "toCardNumber": "2200092730235687",       // Полный номер второй карты john.doe
+              "amount": 50.00
             }
             ```
         *   **Ожидаемый результат:** `HTTP 201 Created` и детали перевода.
