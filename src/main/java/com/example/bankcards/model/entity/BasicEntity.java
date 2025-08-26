@@ -53,7 +53,7 @@ public class BasicEntity {
     @NotNull
     @Comment("Format ISO 8601: YYYY-MM-DD hh:mm:ss.000000")
     @Column(nullable = false, name = "updated_at", columnDefinition = "TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP")
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private LocalDateTime updateAt;
 
     /**
      * Compares this BasicEntity to the specified object. The result is true if and only if

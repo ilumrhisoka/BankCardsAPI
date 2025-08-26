@@ -54,10 +54,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
         AuthResponseDto response = authService.login(loginRequest.getUsername(), loginRequest.getPassword());
-        if (response != null) {
-            return ResponseEntity.ok(response);
-        }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password.");
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -80,7 +77,7 @@ public class AuthController {
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest) {
         Optional<User> registeredUser = userRepository.findByUsername(registerRequest.getUsername());
         if(registeredUser.isPresent()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new DuplicateUsernameException("Username already exists or invalid registration data"));
+            throw new DuplicateUsernameException("Username " + registerRequest.getUsername()+ " already exists");
         }
         AuthResponseDto user = authService.register(
                 registerRequest.getUsername(),

@@ -56,6 +56,7 @@ public class TransferService {
      * @throws InvalidTransferException if the source or destination card is not active,
      *                                  or if attempting to transfer to the same card.
      * @throws InsufficientFundsException if the source card has insufficient funds.
+     * @throws BadRequestException if the transfer was failed.
      */
     @Transactional
     public TransferResponseDto createTransfer(TransferRequest request, String username) {
@@ -112,7 +113,7 @@ public class TransferService {
             dto.setToCardNumber(cardEncryptionService.getMaskedCardNumber(savedTransfer.getToCard().getCardNumber()));
             return dto;
 
-        } catch (Exception e) {
+        } catch (BadRequestException e) {
             log.error("Transfer failed due to: {}", e.getMessage());
 
             Transfer failedTransfer = new Transfer();
@@ -120,10 +121,7 @@ public class TransferService {
             failedTransfer.setAmount(request.getAmount());
             failedTransfer.setTransferDate(LocalDateTime.now());
             failedTransfer.setStatus(TransferStatus.FAILED);
-
-            Transfer savedFailedTransfer = transferRepository.save(failedTransfer);
-
-            throw new BadRequestException("Transfer failed: " + e.getMessage());
+            throw new BadRequestException("Transfer failed.");
         }
     }
 

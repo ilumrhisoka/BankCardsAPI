@@ -62,7 +62,7 @@ public class AdminUserService {
     public UserResponseDto updateUser(Long id, UserUpdateRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found with ID: " + id));
-        if (request.getUsername() != null) { user.setUsername(request.getUsername()); }
+        user.setUsername(request.getUsername());
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setRole(request.getRole());
