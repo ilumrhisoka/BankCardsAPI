@@ -1,5 +1,6 @@
 package com.example.bankcards.service.card;
 
+import com.example.bankcards.exception.card.CardStatusException;
 import com.example.bankcards.exception.user.UserNotFoundException;
 import com.example.bankcards.model.dto.card.CardCreateRequest;
 import com.example.bankcards.model.dto.card.CardResponseDto;
@@ -184,6 +185,66 @@ public class CardService {
         card.setCardStatus(CardStatus.ACTIVE);
         Card savedCard = cardRepository.save(card);
         log.info("Activated card with ID: {}", id);
+        CardResponseDto dto = cardMapper.toCardResponseDto(savedCard);
+        dto.setCardNumber(cardEncryptionService.getMaskedCardNumber(savedCard.getCardNumber()));
+        return dto;
+    }
+
+    /**
+     * Approves a pending block request for a card, changing its status to BLOCKED.
+     *
+     * @param id The ID of the card to approve blocking for.
+     * @return A {@link CardResponseDto} representing the blocked card.
+     * @throws CardNotFoundException if no card is found with the given ID.
+     * @throws CardStatusException if the card is not in PENDING_BLOCK state.
+     */
+    @Transactional
+    public CardResponseDto approveBlockRequest(Long id) {
+        log.info("Admin attempting to approve block request for card ID: {}", id);
+        Card card = cardRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("Card not found with ID: {}", id);
+                    return new CardNotFoundException("Card not found");
+                });
+
+        if (card.getCardStatus() != CardStatus.PENDING_BLOCK) {
+            log.warn("Cannot approve block request for card ID: {}. Current status is not PENDING_BLOCK: {}", id, card.getCardStatus());
+            throw new CardStatusException("Card is not in PENDING_BLOCK status.");
+        }
+
+        card.setCardStatus(CardStatus.BLOCKED);
+        Card savedCard = cardRepository.save(card);
+        log.info("Successfully approved block request for card ID: {}. New status: BLOCKED", id);
+        CardResponseDto dto = cardMapper.toCardResponseDto(savedCard);
+        dto.setCardNumber(cardEncryptionService.getMaskedCardNumber(savedCard.getCardNumber()));
+        return dto;
+    }
+
+    /**
+     * Approves a pending unblock request for a card, changing its status to ACTIVE.
+     *
+     * @param id The ID of the card to approve unblocking for.
+     * @return A {@link CardResponseDto} representing the activated card.
+     * @throws CardNotFoundException if no card is found with the given ID.
+     * @throws CardStatusException if the card is not in PENDING_UNBLOCK state.
+     */
+    @Transactional
+    public CardResponseDto approveUnblockRequest(Long id) {
+        log.info("Admin attempting to approve unblock request for card ID: {}", id);
+        Card card = cardRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("Card not found with ID: {}", id);
+                    return new CardNotFoundException("Card not found");
+                });
+
+        if (card.getCardStatus() != CardStatus.PENDING_UNBLOCK) {
+            log.warn("Cannot approve unblock request for card ID: {}. Current status is not PENDING_UNBLOCK: {}", id, card.getCardStatus());
+            throw new CardStatusException("Card is not in PENDING_UNBLOCK status.");
+        }
+
+        card.setCardStatus(CardStatus.ACTIVE);
+        Card savedCard = cardRepository.save(card);
+        log.info("Successfully approved unblock request for card ID: {}. New status: ACTIVE", id);
         CardResponseDto dto = cardMapper.toCardResponseDto(savedCard);
         dto.setCardNumber(cardEncryptionService.getMaskedCardNumber(savedCard.getCardNumber()));
         return dto;

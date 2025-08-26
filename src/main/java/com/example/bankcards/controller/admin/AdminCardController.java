@@ -233,4 +233,62 @@ public class AdminCardController {
         CardResponseDto card = cardService.activateCard(id);
         return ResponseEntity.ok(card);
     }
+
+    /**
+     * Approves a pending block request for a specific bank card by its ID.
+     * This operation is accessible only by administrators.
+     *
+     * @param id The ID of the card to approve blocking for.
+     * @return A {@link ResponseEntity} containing the blocked card details
+     *         ({@link CardResponseDto}) and HTTP status 200 (OK).
+     * @throws CardStatusException (HTTP 400) if the card is not in PENDING_BLOCK state.
+     * @throws CardNotFoundException (HTTP 404) if no card is found with the given ID.
+     * @throws CardOwnershipException (HTTP 403) if the authenticated user does not have 'ROLE_ADMIN' authority.
+     */
+    @Operation(summary = "Approve a card block request",
+            description = "Approves a pending block request for a specific bank card by its ID. Only accessible by administrators.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Card block request approved successfully",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardResponseDto.class))),
+            @ApiResponse(responseCode = "400", description = "Card is not in PENDING_BLOCK state.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardStatusException.class))),
+            @ApiResponse(responseCode = "404", description = "Card not found with the given ID.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardNotFoundException.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardOwnershipException.class)))
+    })
+    @PostMapping("/{id}/approve-block")
+    public ResponseEntity<CardResponseDto> approveBlockRequest(@PathVariable Long id) {
+        CardResponseDto card = cardService.approveBlockRequest(id);
+        return ResponseEntity.ok(card);
+    }
+
+    /**
+     * Approves a pending unblock request for a specific bank card by its ID.
+     * This operation is accessible only by administrators.
+     *
+     * @param id The ID of the card to approve unblocking for.
+     * @return A {@link ResponseEntity} containing the activated card details
+     *         ({@link CardResponseDto}) and HTTP status 200 (OK).
+     * @throws CardStatusException (HTTP 400) if the card is not in PENDING_UNBLOCK state.
+     * @throws CardNotFoundException (HTTP 404) if no card is found with the given ID.
+     * @throws CardOwnershipException (HTTP 403) if the authenticated user does not have 'ROLE_ADMIN' authority.
+     */
+    @Operation(summary = "Approve a card unblock request",
+            description = "Approves a pending unblock request for a specific bank card by its ID. Only accessible by administrators.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Card unblock request approved successfully",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardResponseDto.class))),
+            @ApiResponse(responseCode = "400", description = "Card is not in PENDING_UNBLOCK state.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardStatusException.class))),
+            @ApiResponse(responseCode = "404", description = "Card not found with the given ID.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardNotFoundException.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required.",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardOwnershipException.class)))
+    })
+    @PostMapping("/{id}/approve-unblock")
+    public ResponseEntity<CardResponseDto> approveUnblockRequest(@PathVariable Long id) {
+        CardResponseDto card = cardService.approveUnblockRequest(id);
+        return ResponseEntity.ok(card);
+    }
 }

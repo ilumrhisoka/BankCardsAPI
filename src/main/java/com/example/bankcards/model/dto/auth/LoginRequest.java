@@ -19,6 +19,7 @@ public class LoginRequest {
     private String username;
 
     @NotBlank(message = "Password cannot be empty")
+    @Size(min = 8, max = 100, message = "Password must be between 8 and 100 characters")
     @Schema(description = "User password.", example = "password123")
     private String password;
 }

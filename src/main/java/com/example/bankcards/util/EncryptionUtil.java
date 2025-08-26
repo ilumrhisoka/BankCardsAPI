@@ -11,6 +11,11 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
 
+/**
+ * Utility class for performing AES/GCM encryption and decryption.
+ * Uses a secret key configured via Spring properties.
+ * Provides methods to encrypt, decrypt, and compare plain text with encrypted text.
+ */
 @Component
 @Slf4j
 public class EncryptionUtil {
@@ -23,6 +28,15 @@ public class EncryptionUtil {
     @Value("${encryption.key}")
     private String encryptionKey;
 
+    /**
+     * Encrypts the given plain text using AES/GCM.
+     * A random IV is generated for each encryption operation and prepended to the ciphertext.
+     * The result is Base64 encoded.
+     *
+     * @param plainText the string to be encrypted.
+     * @return the Base64 encoded encrypted string, including the IV.
+     * @throws RuntimeException if an error occurs during encryption.
+     */
     public String encrypt(String plainText) {
         try {
             SecretKeySpec keySpec = new SecretKeySpec(
@@ -50,6 +64,14 @@ public class EncryptionUtil {
         }
     }
 
+    /**
+     * Decrypts the given Base64 encoded encrypted text using AES/GCM.
+     * The IV is extracted from the beginning of the decoded data.
+     *
+     * @param encryptedText the Base64 encoded encrypted string to be decrypted.
+     * @return the decrypted plain text string.
+     * @throws RuntimeException if an error occurs during decryption.
+     */
     public String decrypt(String encryptedText) {
         try {
             byte[] decodedData = Base64.getDecoder().decode(encryptedText);
@@ -76,6 +98,15 @@ public class EncryptionUtil {
         }
     }
 
+    /**
+     * Compares a plain text string with an encrypted text string by decrypting the latter
+     * and performing a string equality check.
+     *
+     * @param plainText the unencrypted string to compare.
+     * @param encryptedText the Base64 encoded encrypted string to compare against.
+     * @return {@code true} if the decrypted text matches the plain text, {@code false} otherwise.
+     *         Returns {@code false} if decryption fails.
+     */
     public boolean matches(String plainText, String encryptedText) {
         try {
             String decrypted = decrypt(encryptedText);

@@ -25,7 +25,7 @@ public class RegisterRequest {
     private String email;
 
     @NotBlank(message = "Password cannot be empty")
-    @Size(min = 8, message = "Password must be at least 8 characters long")
+    @Size(min = 8, max = 100, message = "Password must be between 8 and 100 characters")
     @Schema(description = "Password for the new user.", example = "securepassword")
     private String password;
 }

@@ -112,13 +112,8 @@ public class AuthController {
         if (refreshToken == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         }
-        try {
-            AuthResponseDto authResponse = authService.refreshAccessToken(refreshToken);
-            return ResponseEntity.ok(authResponse);
-        } catch (RuntimeException e) {
-            System.err.println("Refresh token failed: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
-        }
+        AuthResponseDto authResponse = authService.refreshAccessToken(refreshToken);
+        return ResponseEntity.ok(authResponse);
     }
 
 }

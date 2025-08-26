@@ -12,6 +12,10 @@ import org.springframework.stereotype.Component;
 import java.util.Date;
 import java.util.UUID;
 
+/**
+ * Utility class for JSON Web Token (JWT) operations.
+ * Handles generation, validation, and parsing of JWTs for authentication and authorization.
+ */
 @Component
 public class JwtUtil {
     @Value("${jwt.secret}")
@@ -24,11 +28,24 @@ public class JwtUtil {
     private static final SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS256;
     private Key key;
 
+    /**
+     * Initializes the {@link Key} object from the secret string after the bean has been constructed.
+     * This method is called automatically by Spring after dependency injection is complete.
+     */
     @PostConstruct
     public void init() {
         this.key = new SecretKeySpec(secret.getBytes(), SIGNATURE_ALGORITHM.getJcaName());
     }
 
+    /**
+     * Generates a new JWT access token for a given username and role.
+     * The token includes the subject (username), a custom claim for role,
+     * issue date, and expiration date.
+     *
+     * @param username the subject of the token (e.g., user's identifier).
+     * @param role the role of the user, included as a custom claim.
+     * @return a compact JWT string.
+     */
     public String generateToken(String username, String role) {
         return Jwts.builder()
                 .setSubject(username)
@@ -39,6 +56,13 @@ public class JwtUtil {
                 .compact();
     }
 
+    /**
+     * Validates a given JWT token.
+     * It parses the token using the signing key and checks its integrity and expiration.
+     *
+     * @param token the JWT string to validate.
+     * @return {@code true} if the token is valid, {@code false} otherwise.
+     */
     public boolean validateToken(String token) {
         try {
             Jwts.parser()
@@ -51,6 +75,12 @@ public class JwtUtil {
         }
     }
 
+    /**
+     * Extracts the username (subject) from a valid JWT token.
+     *
+     * @param token the JWT string from which to extract the username.
+     * @return the username (subject) contained within the token.
+     */
     public String getUsernameFromToken(String token) {
         return Jwts.parser()
                 .setSigningKey(key)
@@ -60,6 +90,13 @@ public class JwtUtil {
                 .getSubject();
     }
 
+    /**
+     * Extracts the role from a valid JWT token's claims.
+     * The role is expected to be stored under the "role" claim.
+     *
+     * @param token the JWT string from which to extract the role.
+     * @return the role string contained within the token's claims.
+     */
     public String getRoleFromToken(String token) {
         Claims claims = Jwts.parser()
                 .setSigningKey(key)
@@ -69,7 +106,11 @@ public class JwtUtil {
         return claims.get("role", String.class);
     }
 
-
+    /**
+     * Generates a random UUID string to be used as a refresh token.
+     *
+     * @return a unique string representing a refresh token.
+     */
     public String generateRefreshTokenString() {
         return UUID.randomUUID().toString();
     }

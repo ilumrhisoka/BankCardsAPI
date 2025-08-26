@@ -31,6 +31,16 @@ import java.util.stream.Collectors;
  * Service class for managing money transfer operations.
  * This service handles the creation and retrieval of transfers, including validation
  * of card status, ownership, and sufficient funds.
+ *
+ * <p>Annotated with {@link org.springframework.stereotype.Service @Service} to indicate
+ * its role as a service component in the Spring application context.</p>
+ *
+ * <p>Uses {@link lombok.RequiredArgsConstructor @RequiredArgsConstructor} for constructor
+ * injection of dependencies and {@link lombok.extern.slf4j.Slf4j @Slf4j} for logging.</p>
+ *
+ * <p>All methods within this class are {@link org.springframework.transaction.annotation.Transactional @Transactional}
+ * with {@code readOnly = true} by default, meaning that read operations do not require
+ * a new transaction unless explicitly overridden.</p>
  */
 @Service
 @RequiredArgsConstructor
@@ -97,6 +107,17 @@ public class TransferService {
         }
     }
 
+    /**
+     * Retrieves and validates the source card for a transfer.
+     * Checks if the card exists, belongs to the specified user, and is active.
+     *
+     * @param fromCardId The ID of the source card.
+     * @param username The username of the card owner.
+     * @return The validated {@link Card} object representing the source card.
+     * @throws CardNotFoundException if the card with the given ID is not found.
+     * @throws CardOwnershipException if the card does not belong to the specified user.
+     * @throws CardStatusException if the card is not in an {@code ACTIVE} status.
+     */
     private Card getAndValidateFromCard(Long fromCardId, String username) {
         Card fromCard = cardRepository.findById(fromCardId)
                 .orElseThrow(() -> new CardNotFoundException("Source card not found with ID: " + fromCardId));
@@ -110,6 +131,20 @@ public class TransferService {
         return fromCard;
     }
 
+    /**
+     * Retrieves and validates the destination card for a transfer.
+     * Checks if the card exists, belongs to the specified user, is active,
+     * and is not the same as the source card.
+     *
+     * @param toCardNumber The card number of the destination card.
+     * @param fromCard The source card from which the transfer originates.
+     * @param username The username of the card owner.
+     * @return The validated {@link Card} object representing the destination card.
+     * @throws CardNotFoundException if the destination card with the given number is not found.
+     * @throws ForbiddenException if the target card does not belong to the same user.
+     * @throws CardStatusException if the destination card is not in an {@code ACTIVE} status.
+     * @throws InvalidTransferException if the source and destination cards are the same.
+     */
     private Card getAndValidateToCard(String toCardNumber, Card fromCard, String username) {
         Card toCard = cardRepository.findByUserUsername(username).stream()
                 .filter(card -> cardEncryptionService.matchesCardNumber(toCardNumber, card.getCardNumber()))
@@ -130,12 +165,26 @@ public class TransferService {
         return toCard;
     }
 
+    /**
+     * Validates transfer conditions, specifically checking for sufficient funds on the source card.
+     *
+     * @param fromCard The source card.
+     * @param amount The amount to be transferred.
+     * @throws InsufficientFundsException if the source card has insufficient funds.
+     */
     private void validateTransferConditions(Card fromCard, BigDecimal amount) {
         if (fromCard.getBalance().compareTo(amount) < 0) {
             throw new InsufficientFundsException("Insufficient funds on source card. Available: " + fromCard.getBalance() + ", Requested: " + amount);
         }
     }
 
+    /**
+     * Maps a {@link Transfer} entity to a {@link TransferResponseDto},
+     * masking the card numbers for security.
+     *
+     * @param transfer The {@link Transfer} entity to map.
+     * @return A {@link TransferResponseDto} with masked card numbers.
+     */
     private TransferResponseDto mapTransferToDto(Transfer transfer) {
         TransferResponseDto dto = transferMapper.toTransferResponseDto(transfer);
         if (transfer.getFromCard() != null) {
