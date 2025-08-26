@@ -113,15 +113,25 @@ public class TransferService {
             dto.setToCardNumber(cardEncryptionService.getMaskedCardNumber(savedTransfer.getToCard().getCardNumber()));
             return dto;
 
-        } catch (BadRequestException e) {
-            log.error("Transfer failed due to: {}", e.getMessage());
-
+        } catch (Exception e) {
+            log.error("Transfer failed due to: {}", e.getMessage(), e);
             Transfer failedTransfer = new Transfer();
             failedTransfer.setFromCard(fromCard);
+            failedTransfer.setToCard(toCard);
             failedTransfer.setAmount(request.getAmount());
             failedTransfer.setTransferDate(LocalDateTime.now());
             failedTransfer.setStatus(TransferStatus.FAILED);
-            throw new BadRequestException("Transfer failed.");
+            transferRepository.save(failedTransfer);
+            switch (e) {
+                case CardNotFoundException cardNotFoundException -> throw cardNotFoundException;
+                case CardOwnershipException cardOwnershipException -> throw cardOwnershipException;
+                case InvalidTransferException invalidTransferException -> throw invalidTransferException;
+                case InsufficientFundsException insufficientFundsException -> throw insufficientFundsException;
+                case CardStatusException cardStatusException -> throw cardStatusException;
+                case ForbiddenException forbiddenException -> throw forbiddenException;
+                default -> throw new RuntimeException("An unexpected error occurred during transfer.", e);
+            }
+
         }
     }
 
