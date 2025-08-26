@@ -78,16 +78,17 @@ public class AuthController {
     })
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest) {
+        Optional<User> registeredUser = userRepository.findByUsername(registerRequest.getUsername());
+        if(registeredUser.isPresent()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new DuplicateUsernameException("Username already exists or invalid registration data"));
+        }
         AuthResponseDto user = authService.register(
                 registerRequest.getUsername(),
                 registerRequest.getEmail(),
                 registerRequest.getPassword()
         );
-        Optional<User> registeredUser = userRepository.findByUsername(registerRequest.getUsername());
-        if (registeredUser.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.CREATED).body(user);
-        }
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new DuplicateUsernameException("Username already exists or invalid registration data"));
+        return ResponseEntity.status(HttpStatus.CREATED).body(user);
+
     }
 
     /**

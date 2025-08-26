@@ -1,5 +1,6 @@
 package com.example.bankcards.service.card;
 
+import com.example.bankcards.exception.user.UserNotFoundException;
 import com.example.bankcards.model.dto.card.CardCreateRequest;
 import com.example.bankcards.model.dto.card.CardResponseDto;
 import com.example.bankcards.model.dto.card.CardUpdateRequest;
@@ -41,14 +42,14 @@ public class CardService {
      *
      * @param request The {@link CardCreateRequest} containing details for the new card.
      * @return A {@link CardResponseDto} representing the newly created card with its number masked.
-     * @throws UsernameNotFoundException if the user specified by {@code userId} in the request is not found.
+     * @throws UserNotFoundException if the user specified by {@code userId} in the request is not found.
      * @throws IllegalArgumentException if the card number in the request is invalid.
      * @throws RuntimeException if card number encryption fails.
      */
     @Transactional
     public CardResponseDto createCard(CardCreateRequest request) {
         User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         String encryptedCardNumber = cardEncryptionService.encryptCardNumber(request.getCardNumber());
 

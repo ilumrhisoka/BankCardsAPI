@@ -1,6 +1,6 @@
 package com.example.bankcards.service.card;
 
-import com.example.bankcards.exception.card.AccessDeniedException;
+import com.example.bankcards.exception.card.CardOwnershipException;
 import com.example.bankcards.exception.card.CardStatusException;
 import com.example.bankcards.model.dto.card.CardResponseDto;
 import com.example.bankcards.model.entity.Card;
@@ -54,7 +54,7 @@ public class UserCardService {
      * @param cardId The ID of the card to request unblocking for.
      * @param username The username of the user who owns the card.
      * @throws CardNotFoundException if no card is found with the given ID.
-     * @throws AccessDeniedException if the card does not belong to the specified user.
+     * @throws CardOwnershipException if the card does not belong to the specified user.
      * @throws CardStatusException if the card is already active or in a pending unblock state.
      */
     @Transactional
@@ -63,12 +63,13 @@ public class UserCardService {
                 .orElseThrow(() -> new CardNotFoundException("Card not found"));
 
         if (!card.getUser().getUsername().equals(username)) {
-            throw new AccessDeniedException("Access denied: Card doesn't belong to user");
+            throw new CardOwnershipException("Access denied: Card doesn't belong to user");
         }
         if (card.getCardStatus() != CardStatus.BLOCKED) {
             throw new CardStatusException("Card is not blocked");
         }
         log.info("User {} requested unblock for card {}", username, cardEncryptionService.getMaskedCardNumber(card.getCardNumber()));
+        card.setCardStatus(CardStatus.PENDING_UNBLOCK);
     }
 
     /**
@@ -78,7 +79,7 @@ public class UserCardService {
      * @param cardId The ID of the card to request blocking for.
      * @param username The username of the user who owns the card.
      * @throws CardNotFoundException if no card is found with the given ID.
-     * @throws AccessDeniedException if the card does not belong to the specified user.
+     * @throws CardOwnershipException if the card does not belong to the specified user.
      * @throws CardStatusException if the card is already blocked or in a pending block state.
      */
     @Transactional
@@ -87,12 +88,13 @@ public class UserCardService {
                 .orElseThrow(() -> new CardNotFoundException("Card not found"));
 
         if (!card.getUser().getUsername().equals(username)) {
-            throw new AccessDeniedException("Access denied: Card doesn't belong to user");
+            throw new CardOwnershipException("Access denied: Card doesn't belong to user");
         }
         if (card.getCardStatus() == CardStatus.BLOCKED) {
             throw new CardStatusException("Card is already blocked");
         }
         log.info("User {} requested block for card {}", username, cardEncryptionService.getMaskedCardNumber(card.getCardNumber()));
+        card.setCardStatus(CardStatus.PENDING_BLOCK);
     }
 
     /**
@@ -120,13 +122,13 @@ public class UserCardService {
      * @param username The username of the user who should own the card.
      * @return A {@link CardResponseDto} representing the retrieved card.
      * @throws CardNotFoundException if no card is found with the given ID.
-     * @throws AccessDeniedException if the card does not belong to the specified user.
+     * @throws CardOwnershipException if the card does not belong to the specified user.
      */
     public CardResponseDto getUserCardById(Long cardId, String username) {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new CardNotFoundException("Card not found"));
         if(!card.getUser().getUsername().equals(username)) {
-            throw new AccessDeniedException("Access denied: Card doesn't belong to user");
+            throw new CardOwnershipException("Access denied: Card doesn't belong to user");
         }
         CardResponseDto dto = cardMapper.toCardResponseDto(card);
         dto.setCardNumber(cardEncryptionService.getMaskedCardNumber(card.getCardNumber()));

@@ -2,6 +2,7 @@ package com.example.bankcards.service.auth;
 
 import com.example.bankcards.exception.user.AuthenticationFailedException;
 import com.example.bankcards.exception.user.DuplicateUsernameException;
+import com.example.bankcards.exception.user.TokenExpiredException;
 import com.example.bankcards.model.dto.auth.AuthResponseDto;
 import com.example.bankcards.model.entity.RefreshToken;
 import com.example.bankcards.model.entity.User;
@@ -104,23 +105,23 @@ public class AuthService {
      *
      * @param refreshTokenString The string representation of the refresh token.
      * @return An {@link AuthResponseDto} containing the new access token and new refresh token.
-     * @throws RuntimeException if the refresh token is not found, is invalid, or has expired,
+     * @throws TokenExpiredException if the refresh token is not found, is invalid, or has expired,
      *                          or if the user associated with the refresh token is not found.
      */
     @Transactional
     public AuthResponseDto refreshAccessToken(String refreshTokenString) {
         Optional<RefreshToken> optionalRefreshToken = refreshTokenRepository.findByToken(refreshTokenString);
         if (optionalRefreshToken.isEmpty()) {
-            throw new RuntimeException("Refresh Token не найден или недействителен.");
+            throw new TokenExpiredException("Refresh Token not found or expired.");
         }
         RefreshToken refreshToken = optionalRefreshToken.get();
         if (refreshToken.getExpiryDate().isBefore(Instant.now())) {
             refreshTokenRepository.delete(refreshToken);
-            throw new RuntimeException("Refresh Token истек. Пожалуйста, войдите снова.");
+            throw new TokenExpiredException("Refresh Token expired.");
         }
         User user = refreshToken.getUser();
         if (user == null) {
-            throw new RuntimeException("Пользователь, связанный с Refresh Token, не найден.");
+            throw new TokenExpiredException("Refresh token not found.");
         }
         String newAccessToken = jwtUtil.generateToken(user.getUsername(), user.getRole().name());
         refreshTokenRepository.delete(refreshToken);

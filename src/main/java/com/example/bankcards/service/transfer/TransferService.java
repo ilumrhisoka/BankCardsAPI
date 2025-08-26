@@ -9,7 +9,7 @@ import com.example.bankcards.model.entity.Transfer;
 import com.example.bankcards.model.entity.enums.CardStatus;
 import com.example.bankcards.model.entity.enums.TransferStatus;
 import com.example.bankcards.exception.dto.BadRequestException;
-import com.example.bankcards.exception.card.AccessDeniedException;
+import com.example.bankcards.exception.card.CardOwnershipException;
 import com.example.bankcards.exception.dto.ForbiddenException;
 import com.example.bankcards.exception.dto.ResourceNotFoundException;
 import com.example.bankcards.exception.card.CardNotFoundException;
@@ -52,7 +52,7 @@ public class TransferService {
      * @param username The username of the authenticated user attempting the transfer.
      * @return A {@link TransferResponseDto} representing the created transfer.
      * @throws CardNotFoundException if the source or destination card is not found.
-     * @throws AccessDeniedException if the source card does not belong to the authenticated user.
+     * @throws CardOwnershipException if the source card does not belong to the authenticated user.
      * @throws InvalidTransferException if the source or destination card is not active,
      *                                  or if attempting to transfer to the same card.
      * @throws InsufficientFundsException if the source card has insufficient funds.
@@ -63,13 +63,13 @@ public class TransferService {
                 .orElseThrow(() -> new CardNotFoundException("Source card not found with ID: " + request.getFromCardId()));
 
         if (!fromCard.getUser().getUsername().equals(username)) {
-            throw new AccessDeniedException("Access denied: Card doesn't belong to user");
+            throw new CardOwnershipException("Access denied: Card doesn't belong to user");
         }
         if (fromCard.getCardStatus() != CardStatus.ACTIVE) {
             throw new CardStatusException("Source card is not active. Current status: " + fromCard.getCardStatus());
         }
 
-        Card toCard = findCardByNumber(request.getToCardNumber());
+        Card toCard = findCardByNumber(request.getToCardNumber(), username);
 
         if (!toCard.getUser().getUsername().equals(username)) {
             throw new ForbiddenException("Access denied: Target card doesn't belong to the same user");
@@ -153,7 +153,7 @@ public class TransferService {
      * @param username The username of the authenticated user.
      * @return A {@link List} of {@link TransferResponseDto} representing the card's transfers.
      * @throws CardNotFoundException if the card is not found.
-     * @throws AccessDeniedException if the card does not belong to the authenticated user.
+     * @throws CardOwnershipException if the card does not belong to the authenticated user.
      */
     public List<TransferResponseDto> getCardTransfers(Long cardId, String username) {
         Card card = cardRepository.findById(cardId)
@@ -200,8 +200,8 @@ public class TransferService {
         return dto;
     }
 
-    private Card findCardByNumber(String plainCardNumber) {
-        return cardRepository.findAll().stream()
+    private Card findCardByNumber(String plainCardNumber, String username) {
+        return cardRepository.findByUserUsername(username).stream()
                 .filter(card -> cardEncryptionService.matchesCardNumber(plainCardNumber, card.getCardNumber()))
                 .findFirst()
                 .orElseThrow(() -> new CardNotFoundException("Card not found"));

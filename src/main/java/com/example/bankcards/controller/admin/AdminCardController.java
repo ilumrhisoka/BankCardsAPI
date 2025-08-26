@@ -6,6 +6,7 @@ import com.example.bankcards.exception.user.UserNotFoundException;
 import com.example.bankcards.model.dto.card.CardCreateRequest;
 import com.example.bankcards.model.dto.card.CardResponseDto;
 import com.example.bankcards.model.dto.card.CardUpdateRequest;
+import com.example.bankcards.exception.card.CardOwnershipException;
 import com.example.bankcards.service.card.CardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -19,7 +20,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -51,7 +51,7 @@ public class AdminCardController {
      *         ({@link CardResponseDto}) and HTTP status 201 (Created).
      * @throws UserNotFoundException (HTTP 404) if the user specified by {@code userId} in the request is not found.
      * @throws IllegalArgumentException (HTTP 400) if the card number in the request is invalid.
-     * @throws AccessDeniedException (HTTP 403) if the authenticated user does not have 'ROLE_ADMIN' authority.
+     * @throws CardOwnershipException (HTTP 403) if the authenticated user does not have 'ROLE_ADMIN' authority.
      */
     @Operation(summary = "Create a new bank card",
             description = "Allows administrators to create a new bank card with specified details.")
@@ -61,7 +61,7 @@ public class AdminCardController {
             @ApiResponse(responseCode = "400", description = "Invalid request body or data validation failed.",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))), // Для общих ошибок валидации
             @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required.",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AccessDeniedException.class))),
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardOwnershipException.class))),
             @ApiResponse(responseCode = "404", description = "User not found for card creation.",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = UserNotFoundException.class)))
     })
@@ -78,7 +78,7 @@ public class AdminCardController {
      * @param pageable Pagination information (page number, size, sort order).
      * @return A {@link ResponseEntity} containing a {@link Page} of card details
      *         ({@link CardResponseDto}) and HTTP status 200 (OK).
-     * @throws AccessDeniedException (HTTP 403) if the authenticated user does not have 'ROLE_ADMIN' authority.
+     * @throws CardOwnershipException (HTTP 403) if the authenticated user does not have 'ROLE_ADMIN' authority.
      */
     @Operation(summary = "Get all bank cards with pagination",
             description = "Retrieves a paginated list of all bank cards. Only accessible by administrators.")
@@ -86,7 +86,7 @@ public class AdminCardController {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved list of cards",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = Page.class))),
             @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required.",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AccessDeniedException.class)))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardOwnershipException.class)))
     })
     @GetMapping
     public ResponseEntity<Page<CardResponseDto>> getAllCards(Pageable pageable) {
@@ -102,7 +102,7 @@ public class AdminCardController {
      * @return A {@link ResponseEntity} containing the card details
      *         ({@link CardResponseDto}) and HTTP status 200 (OK).
      * @throws CardNotFoundException (HTTP 404) if no card is found with the given ID.
-     * @throws AccessDeniedException (HTTP 403) if the authenticated user does not have 'ROLE_ADMIN' authority.
+     * @throws CardOwnershipException (HTTP 403) if the authenticated user does not have 'ROLE_ADMIN' authority.
      */
     @Operation(summary = "Get a bank card by ID",
             description = "Retrieves details of a specific bank card by its ID. Only accessible by administrators.")
@@ -112,7 +112,7 @@ public class AdminCardController {
             @ApiResponse(responseCode = "404", description = "Card not found with the given ID.",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardNotFoundException.class))),
             @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required.",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AccessDeniedException.class)))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardOwnershipException.class)))
     })
     @GetMapping("/{id}")
     public ResponseEntity<CardResponseDto> getCardById(@PathVariable Long id) {
@@ -129,7 +129,7 @@ public class AdminCardController {
      * @return A {@link ResponseEntity} containing the updated card details
      *         ({@link CardResponseDto}) and HTTP status 200 (OK).
      * @throws CardNotFoundException (HTTP 404) if no card is found with the given ID.
-     * @throws AccessDeniedException (HTTP 403) if the authenticated user does not have 'ROLE_ADMIN' authority.
+     * @throws CardOwnershipException (HTTP 403) if the authenticated user does not have 'ROLE_ADMIN' authority.
      */
     @Operation(summary = "Update an existing bank card",
             description = "Allows administrators to update details of an existing bank card by its ID.")
@@ -141,7 +141,7 @@ public class AdminCardController {
             @ApiResponse(responseCode = "404", description = "Card not found with the given ID.",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardNotFoundException.class))),
             @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required.",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AccessDeniedException.class)))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardOwnershipException.class)))
     })
     @PutMapping("/{id}")
     public ResponseEntity<CardResponseDto> updateCard(@PathVariable Long id,
@@ -158,7 +158,7 @@ public class AdminCardController {
      * @return A {@link ResponseEntity} with no content and HTTP status 204 (No Content)
      *         upon successful deletion.
      * @throws CardNotFoundException (HTTP 404) if no card is found with the given ID.
-     * @throws AccessDeniedException (HTTP 403) if the authenticated user does not have 'ROLE_ADMIN' authority.
+     * @throws CardOwnershipException (HTTP 403) if the authenticated user does not have 'ROLE_ADMIN' authority.
      */
     @Operation(summary = "Delete a bank card by ID",
             description = "Deletes a bank card permanently by its ID. Only accessible by administrators.")
@@ -168,7 +168,7 @@ public class AdminCardController {
             @ApiResponse(responseCode = "404", description = "Card not found with the given ID.",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardNotFoundException.class))),
             @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required.",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AccessDeniedException.class)))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardOwnershipException.class)))
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCard(@PathVariable Long id) {
@@ -185,7 +185,7 @@ public class AdminCardController {
      *         ({@link CardResponseDto}) and HTTP status 200 (OK).
      * @throws CardStatusException (HTTP 400) if the card is already blocked or cannot be blocked in its current state.
      * @throws CardNotFoundException (HTTP 404) if no card is found with the given ID.
-     * @throws AccessDeniedException (HTTP 403) if the authenticated user does not have 'ROLE_ADMIN' authority.
+     * @throws CardOwnershipException (HTTP 403) if the authenticated user does not have 'ROLE_ADMIN' authority.
      */
     @Operation(summary = "Block a bank card",
             description = "Blocks a specific bank card by its ID, preventing further transactions. Only accessible by administrators.")
@@ -197,7 +197,7 @@ public class AdminCardController {
             @ApiResponse(responseCode = "404", description = "Card not found with the given ID.",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardNotFoundException.class))),
             @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required.",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AccessDeniedException.class)))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardOwnershipException.class)))
     })
     @PostMapping("/{id}/block")
     public ResponseEntity<CardResponseDto> blockCard(@PathVariable Long id) {
@@ -214,7 +214,7 @@ public class AdminCardController {
      *         ({@link CardResponseDto}) and HTTP status 200 (OK).
      * @throws CardStatusException (HTTP 400) if the card is already active or cannot be activated in its current state.
      * @throws CardNotFoundException (HTTP 404) if no card is found with the given ID.
-     * @throws AccessDeniedException (HTTP 403) if the authenticated user does not have 'ROLE_ADMIN' authority.
+     * @throws CardOwnershipException (HTTP 403) if the authenticated user does not have 'ROLE_ADMIN' authority.
      */
     @Operation(summary = "Activate a bank card",
             description = "Activates a previously blocked or inactive bank card by its ID. Only accessible by administrators.")
@@ -226,7 +226,7 @@ public class AdminCardController {
             @ApiResponse(responseCode = "404", description = "Card not found with the given ID.",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardNotFoundException.class))),
             @ApiResponse(responseCode = "403", description = "Forbidden - Admin access required.",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AccessDeniedException.class)))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardOwnershipException.class)))
     })
     @PostMapping("/{id}/activate")
     public ResponseEntity<CardResponseDto> activateCard(@PathVariable Long id) {

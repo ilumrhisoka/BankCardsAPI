@@ -11,8 +11,7 @@ import com.example.bankcards.service.transfer.TransferService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.access.prepost.PreAuthorize;
+import com.example.bankcards.exception.card.CardOwnershipException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,7 +36,6 @@ import java.util.List;
 @RequestMapping("/api/user/transfers")
 @RequiredArgsConstructor
 @Tag(name = "User Transfers", description = "Operations related to managing user's money transfers")
-@PreAuthorize("hasAuthority('ROLE_USER')")
 public class TransferController {
 
     private final TransferService transferService;
@@ -53,7 +51,7 @@ public class TransferController {
      * @throws InvalidTransferException (HTTP 400) if attempting to transfer to the same card.
      * @throws InsufficientFundsException (HTTP 400) if the source card has insufficient funds.
      * @throws CardStatusException (HTTP 400) if the source or destination card is not active.
-     * @throws AccessDeniedException (HTTP 403) if the authenticated user does not have 'ROLE_USER' authority
+     * @throws CardOwnershipException (HTTP 403) if the authenticated user does not have 'ROLE_USER' authority
      *         or if the source card does not belong to the user.
      * @throws CardNotFoundException (HTTP 404) if the source or destination card is not found.
      */
@@ -65,7 +63,7 @@ public class TransferController {
             @ApiResponse(responseCode = "400", description = "Invalid transfer request (e.g., same card, inactive card, insufficient funds).",
                     content = @Content(mediaType = "application/json", schema = @Schema(oneOf = {InvalidTransferException.class, InsufficientFundsException.class, CardStatusException.class}))),
             @ApiResponse(responseCode = "403", description = "Forbidden - User access required or card does not belong to the user.",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AccessDeniedException.class))),
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardOwnershipException.class))),
             @ApiResponse(responseCode = "404", description = "Source or destination card not found.",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardNotFoundException.class)))
     })
@@ -83,7 +81,7 @@ public class TransferController {
      * @param authentication The authentication object containing the current user's details.
      * @return A {@link ResponseEntity} containing a list of transfer details
      *         ({@link TransferResponseDto}) and HTTP status 200 (OK).
-     * @throws AccessDeniedException (HTTP 403) if the authenticated user does not have 'ROLE_USER' authority.
+     * @throws CardOwnershipException (HTTP 403) if the authenticated user does not have 'ROLE_USER' authority.
      */
     @Operation(summary = "Get all transfers for the current user",
             description = "Retrieves a list of all money transfers initiated by or received by the authenticated user.")
@@ -91,7 +89,7 @@ public class TransferController {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved list of transfers",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = TransferResponseDto.class))),
             @ApiResponse(responseCode = "403", description = "Forbidden - User access required.",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AccessDeniedException.class)))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardOwnershipException.class)))
     })
     @GetMapping("/my")
     public ResponseEntity<List<TransferResponseDto>> getMyTransfers(Authentication authentication) {
@@ -107,7 +105,7 @@ public class TransferController {
      * @param authentication The authentication object containing the current user's details.
      * @return A {@link ResponseEntity} containing a list of transfer details
      *         ({@link TransferResponseDto}) and HTTP status 200 (OK).
-     * @throws AccessDeniedException (HTTP 403) if the card does not belong to the user or user access is required.
+     * @throws CardOwnershipException (HTTP 403) if the card does not belong to the user or user access is required.
      * @throws CardNotFoundException (HTTP 404) if the card is not found with the given ID.
      */
     @Operation(summary = "Get transfers for a specific card",
@@ -116,7 +114,7 @@ public class TransferController {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved list of card transfers",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = TransferResponseDto.class))),
             @ApiResponse(responseCode = "403", description = "Forbidden - Card does not belong to user or user access required.",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AccessDeniedException.class))),
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardOwnershipException.class))),
             @ApiResponse(responseCode = "404", description = "Card not found with the given ID.",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardNotFoundException.class)))
     })
@@ -135,7 +133,7 @@ public class TransferController {
      * @param authentication The authentication object containing the current user's details.
      * @return A {@link ResponseEntity} containing the transfer details
      *         ({@link TransferResponseDto}) and HTTP status 200 (OK).
-     * @throws AccessDeniedException (HTTP 403) if the transfer is not associated with the user.
+     * @throws CardOwnershipException (HTTP 403) if the transfer is not associated with the user.
      * @throws TransferNotFoundException (HTTP 404) if the transfer is not found with the given ID.
      */
     @Operation(summary = "Get a specific transfer by ID",
@@ -144,7 +142,7 @@ public class TransferController {
             @ApiResponse(responseCode = "200", description = "Transfer found and retrieved successfully",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = TransferResponseDto.class))),
             @ApiResponse(responseCode = "403", description = "Forbidden - Transfer not associated with user or user access required.",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AccessDeniedException.class))),
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardOwnershipException.class))),
             @ApiResponse(responseCode = "404", description = "Transfer not found with the given ID.",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = TransferNotFoundException.class)))
     })

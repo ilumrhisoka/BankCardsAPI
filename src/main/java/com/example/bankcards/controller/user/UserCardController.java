@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
+import com.example.bankcards.exception.card.CardOwnershipException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -41,7 +41,7 @@ public class UserCardController {
      * @param pageable Pagination information (page number, size, sort order).
      * @return A {@link ResponseEntity} containing a {@link Page} of card details
      *         ({@link CardResponseDto}) and HTTP status 200 (OK).
-     * @throws AccessDeniedException (HTTP 403) if the authenticated user does not have required access.
+     * @throws CardOwnershipException (HTTP 403) if the authenticated user does not have required access.
      */
     @Operation(summary = "Get all cards for the current user with pagination",
             description = "Retrieves a paginated list of all bank cards owned by the authenticated user.")
@@ -49,7 +49,7 @@ public class UserCardController {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved list of user cards",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = Page.class))),
             @ApiResponse(responseCode = "403", description = "Forbidden - User access required.",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AccessDeniedException.class)))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardOwnershipException.class)))
     })
     @GetMapping
     public ResponseEntity<Page<CardResponseDto>> getUserCards(Authentication authentication, Pageable pageable) {
@@ -65,7 +65,7 @@ public class UserCardController {
      * @param authentication The authentication object containing the current user's details.
      * @return A {@link ResponseEntity} containing the card details
      *         ({@link CardResponseDto}) and HTTP status 200 (OK).
-     * @throws AccessDeniedException (HTTP 403) if the card does not belong to the user or user access is required.
+     * @throws CardOwnershipException (HTTP 403) if the card does not belong to the user or user access is required.
      * @throws CardNotFoundException (HTTP 404) if no card is found with the given ID.
      */
     @Operation(summary = "Get a specific card by ID",
@@ -74,7 +74,7 @@ public class UserCardController {
             @ApiResponse(responseCode = "200", description = "Card found and retrieved successfully",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardResponseDto.class))),
             @ApiResponse(responseCode = "403", description = "Forbidden - Card does not belong to user or user access required.",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AccessDeniedException.class))),
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardOwnershipException.class))),
             @ApiResponse(responseCode = "404", description = "Card not found with the given ID.",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardNotFoundException.class)))
     })
@@ -94,7 +94,7 @@ public class UserCardController {
      * @param authentication The authentication object containing the current user's details.
      * @return A {@link ResponseEntity} with no content and HTTP status 200 (OK) upon successful request submission.
      * @throws CardStatusException (HTTP 400) if the card is already blocked or in a pending block state.
-     * @throws AccessDeniedException (HTTP 403) if the card does not belong to the user or user access is required.
+     * @throws CardOwnershipException (HTTP 403) if the card does not belong to the user or user access is required.
      * @throws CardNotFoundException (HTTP 404) if no card is found with the given ID.
      */
     @Operation(summary = "Request to block a card",
@@ -105,7 +105,7 @@ public class UserCardController {
             @ApiResponse(responseCode = "400", description = "Card is already blocked or a block request is pending.",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardStatusException.class))),
             @ApiResponse(responseCode = "403", description = "Forbidden - Card does not belong to user or user access required.",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AccessDeniedException.class))),
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardOwnershipException.class))),
             @ApiResponse(responseCode = "404", description = "Card not found with the given ID.",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardNotFoundException.class)))
     })
@@ -125,7 +125,7 @@ public class UserCardController {
      * @param authentication The authentication object containing the current user's details.
      * @return A {@link ResponseEntity} with no content and HTTP status 200 (OK) upon successful request submission.
      * @throws CardStatusException (HTTP 400) if the card is already active or in a pending unblock state.
-     * @throws AccessDeniedException (HTTP 403) if the card does not belong to the user or user access is required.
+     * @throws CardOwnershipException (HTTP 403) if the card does not belong to the user or user access is required.
      * @throws CardNotFoundException (HTTP 404) if no card is found with the given ID.
      */
     @Operation(summary = "Request to unblock a card",
@@ -136,7 +136,7 @@ public class UserCardController {
             @ApiResponse(responseCode = "400", description = "Card is already active or an unblock request is pending.",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardStatusException.class))),
             @ApiResponse(responseCode = "403", description = "Forbidden - Card does not belong to user or user access required.",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AccessDeniedException.class))),
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardOwnershipException.class))),
             @ApiResponse(responseCode = "404", description = "Card not found with the given ID.",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardNotFoundException.class)))
     })
@@ -154,7 +154,7 @@ public class UserCardController {
      * @param authentication The authentication object containing the current user's details.
      * @return A {@link ResponseEntity} containing the total balance as a {@link BigDecimal}
      *         and HTTP status 200 (OK).
-     * @throws AccessDeniedException (HTTP 403) if the authenticated user does not have required access.
+     * @throws CardOwnershipException (HTTP 403) if the authenticated user does not have required access.
      */
     @Operation(summary = "Get total balance across all user cards",
             description = "Retrieves the sum of balances from all bank cards owned by the authenticated user.")
@@ -162,7 +162,7 @@ public class UserCardController {
             @ApiResponse(responseCode = "200", description = "Total balance retrieved successfully",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = BigDecimal.class))),
             @ApiResponse(responseCode = "403", description = "Forbidden - User access required.",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AccessDeniedException.class)))
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CardOwnershipException.class)))
     })
     @GetMapping("/balance")
     public ResponseEntity<BigDecimal> getBalance(Authentication authentication) {

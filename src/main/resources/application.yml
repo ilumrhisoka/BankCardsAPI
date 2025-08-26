@@ -25,7 +25,6 @@ app:
 
 encryption:
   key: MySecretEncryptionKey12345678901
-
 springdoc:
   swagger-ui:
     url: /v3/api-docs

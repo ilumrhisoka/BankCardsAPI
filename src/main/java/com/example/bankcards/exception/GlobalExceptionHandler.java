@@ -4,18 +4,18 @@ import com.example.bankcards.exception.dto.BadRequestException;
 import com.example.bankcards.exception.dto.ConflictException;
 import com.example.bankcards.exception.dto.ForbiddenException;
 import com.example.bankcards.exception.dto.ResourceNotFoundException;
-import com.example.bankcards.exception.dto.ErrorResponse; // Ваш DTO для ответа об ошибках
+import com.example.bankcards.exception.dto.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.extern.slf4j.Slf4j; // Для логирования
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
+import com.example.bankcards.exception.card.CardOwnershipException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice; // Используем RestControllerAdvice для REST API
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import jakarta.servlet.ServletException; // Используем jakarta.servlet.ServletException
+import jakarta.servlet.ServletException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,9 +41,9 @@ public class GlobalExceptionHandler {
      * Обработка исключений, связанных с отказом в доступе (например, Spring Security).
      * Возвращает статус 403 Forbidden.
      */
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex, HttpServletRequest request) {
-        log.error("AccessDeniedException: {}", ex.getMessage(), ex);
+    @ExceptionHandler(CardOwnershipException.class)
+    public ResponseEntity<ErrorResponse> handleCardOwnershipException(CardOwnershipException ex, HttpServletRequest request) {
+        log.error("CardOwnershipException: {}", ex.getMessage(), ex);
         return createErrorResponseEntity(HttpStatus.FORBIDDEN, "Access denied: " + ex.getMessage(), request);
     }
 
