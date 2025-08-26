@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]
   datasource:
     url: jdbc:postgresql://localhost:5000/bank_db
     username: bank_user
@@ -12,7 +14,7 @@ spring:
       ddl-auto: validate
 
 jwt:
-  secret: S/cZl4iy66cBZmSuXNSNHBbjSMjdP8bO2F2+EMbBW1U=
+  secret: ${JWT_SECRET}
   access-token:
     expiration: 900000
   refresh-token:
@@ -20,11 +22,11 @@ jwt:
 
 app:
   admin:
-    username: adminUser
-    password: superSecretAdminPassword
+    username: ${ADMIN_USERNAME}
+    password: ${ADMIN_PASSWORD}
 
 encryption:
-  key: MySecretEncryptionKey12345678901
+  key: ${ENCRYPTION_KEY}
 springdoc:
   swagger-ui:
     url: /v3/api-docs

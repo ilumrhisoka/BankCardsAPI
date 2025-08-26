@@ -1,6 +1,7 @@
 package com.example.bankcards.service.card;
 
 import com.example.bankcards.exception.card.CardNotFoundException;
+import com.example.bankcards.exception.user.UserNotFoundException;
 import com.example.bankcards.model.dto.card.CardCreateRequest;
 import com.example.bankcards.model.dto.card.CardResponseDto;
 import com.example.bankcards.model.dto.card.CardUpdateRequest;
@@ -129,7 +130,7 @@ class CardServiceTest {
 
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThrows(UsernameNotFoundException.class, () -> cardService.createCard(request));
+        assertThrows(UserNotFoundException.class, () -> cardService.createCard(request));
         verify(userRepository).findById(99L);
         verifyNoInteractions(cardEncryptionService, cardRepository, cardMapper);
     }

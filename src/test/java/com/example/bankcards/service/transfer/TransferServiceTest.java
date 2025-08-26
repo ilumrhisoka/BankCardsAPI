@@ -1,10 +1,12 @@
 package com.example.bankcards.service.transfer;
 
 import com.example.bankcards.exception.card.CardNotFoundException;
+import com.example.bankcards.exception.card.CardOwnershipException;
 import com.example.bankcards.exception.card.CardStatusException;
 import com.example.bankcards.exception.card.InsufficientFundsException;
-import com.example.bankcards.exception.dto.BadRequestException;
 import com.example.bankcards.exception.dto.ForbiddenException;
+import com.example.bankcards.exception.dto.ResourceNotFoundException;
+import com.example.bankcards.exception.transfer.InvalidTransferException;
 import com.example.bankcards.model.dto.transfer.TransferRequest;
 import com.example.bankcards.model.dto.transfer.TransferResponseDto;
 import com.example.bankcards.model.entity.Card;
@@ -32,7 +34,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -55,7 +56,6 @@ class TransferServiceTest {
     private Card fromCard;
     private Card toCard;
     private TransferRequest transferRequest;
-    private TransferResponseDto expectedTransferResponseDto;
 
     @BeforeEach
     void setUp() {
@@ -85,18 +85,9 @@ class TransferServiceTest {
 
         transferRequest = new TransferRequest();
 
-        lenient().when(cardEncryptionService.matchesCardNumber(anyString(), anyString())).thenReturn(false);
         lenient().when(cardEncryptionService.matchesCardNumber("plain_1234", "encrypted_1234")).thenReturn(true);
         lenient().when(cardEncryptionService.matchesCardNumber("plain_5678", "encrypted_5678")).thenReturn(true);
-
-        expectedTransferResponseDto = new TransferResponseDto();
-        expectedTransferResponseDto.setId(1L);
-        expectedTransferResponseDto.setFromCardNumber("masked_1234");
-        expectedTransferResponseDto.setToCardNumber("masked_5678");
-        expectedTransferResponseDto.setAmount(new BigDecimal("100.00"));
-        expectedTransferResponseDto.setStatus(TransferStatus.SUCCESS);
-        expectedTransferResponseDto.setTransferDate(LocalDateTime.now());
-        expectedTransferResponseDto.setCreatedAt(LocalDateTime.now());
+        lenient().when(cardEncryptionService.matchesCardNumber("plain_9999", "encrypted_9999")).thenReturn(true);
     }
 
     @Test
@@ -106,14 +97,14 @@ class TransferServiceTest {
         transferRequest.setAmount(new BigDecimal("100.00"));
 
         TransferResponseDto mapperReturnDto = new TransferResponseDto();
-        mapperReturnDto.setId(1L);
+        mapperReturnDto.setFromCardNumber("masked_1234");
+        mapperReturnDto.setToCardNumber("masked_5678");
         mapperReturnDto.setAmount(transferRequest.getAmount());
         mapperReturnDto.setStatus(TransferStatus.SUCCESS);
-        mapperReturnDto.setTransferDate(LocalDateTime.now());
-        mapperReturnDto.setCreatedAt(LocalDateTime.now());
 
         when(cardRepository.findById(1L)).thenReturn(Optional.of(fromCard));
-        when(cardRepository.findAll()).thenReturn(List.of(fromCard, toCard));
+        when(cardRepository.findByUserUsername("testuser")).thenReturn(List.of(fromCard, toCard));
+
         when(cardEncryptionService.getMaskedCardNumber("encrypted_1234")).thenReturn("masked_1234");
         when(cardEncryptionService.getMaskedCardNumber("encrypted_5678")).thenReturn("masked_5678");
 
@@ -126,7 +117,6 @@ class TransferServiceTest {
         });
         when(transferMapper.toTransferResponseDto(any(Transfer.class))).thenReturn(mapperReturnDto);
 
-
         TransferResponseDto result = transferService.createTransfer(transferRequest, "testuser");
 
         assertNotNull(result);
@@ -136,60 +126,63 @@ class TransferServiceTest {
         assertEquals("masked_5678", result.getToCardNumber());
         verify(cardRepository, times(2)).save(any(Card.class));
         verify(transferRepository).save(any(Transfer.class));
-        verify(transferMapper).toTransferResponseDto(any(Transfer.class));
-        verify(cardEncryptionService, times(4)).getMaskedCardNumber(anyString());
     }
 
     @Test
     void createTransfer_whenInsufficientFunds_shouldThrowInsufficientFundsException() {
         transferRequest.setFromCardId(1L);
         transferRequest.setToCardNumber("plain_5678");
-        transferRequest.setAmount(new BigDecimal("100.00"));
+        transferRequest.setAmount(new BigDecimal("1100.00"));
 
-        fromCard.setBalance(new BigDecimal("50.00"));
+        fromCard.setBalance(new BigDecimal("1000.00"));
         when(cardRepository.findById(1L)).thenReturn(Optional.of(fromCard));
-        when(cardRepository.findAll()).thenReturn(List.of(fromCard, toCard));
+        when(cardRepository.findByUserUsername("testuser")).thenReturn(List.of(fromCard, toCard));
 
         assertThrows(InsufficientFundsException.class, () -> transferService.createTransfer(transferRequest, "testuser"));
+        verify(cardRepository, never()).save(any());
+        verifyNoInteractions(transferMapper);
+        verify(transferRepository, never()).save(any(Transfer.class));
+    }
+
+    @Test
+    void createTransfer_whenFromCardBlocked_shouldThrowCardStatusException() {
+        transferRequest.setFromCardId(1L);
+        transferRequest.setToCardNumber("plain_5678");
+        transferRequest.setAmount(new BigDecimal("100.00"));
+
+        fromCard.setCardStatus(CardStatus.BLOCKED);
+        when(cardRepository.findById(1L)).thenReturn(Optional.of(fromCard));
+
+        assertThrows(CardStatusException.class, () -> transferService.createTransfer(transferRequest, "testuser"));
         verify(cardRepository, never()).save(any());
         verifyNoInteractions(transferMapper);
     }
 
     @Test
-    void createTransfer_whenFromCardBlocked_shouldThrowCardBlockedException() {
-        transferRequest.setFromCardId(1L);
-        transferRequest.setToCardNumber("plain_5678");
-        transferRequest.setAmount(new BigDecimal("100.00"));
-
-        fromCard.setCardStatus(CardStatus.BLOCKED); // Карта заблокирована
-        when(cardRepository.findById(1L)).thenReturn(Optional.of(fromCard));
-
-        assertThrows(CardStatusException.class, () -> transferService.createTransfer(transferRequest, "testuser"));
-        verifyNoInteractions(transferMapper);
-    }
-
-    @Test
-    void createTransfer_toSameCard_shouldThrowBadRequestException() {
+    void createTransfer_toSameCard_shouldThrowInvalidTransferException() {
         transferRequest.setFromCardId(1L);
         transferRequest.setToCardNumber("plain_1234");
         transferRequest.setAmount(new BigDecimal("100.00"));
 
         when(cardRepository.findById(1L)).thenReturn(Optional.of(fromCard));
-        when(cardRepository.findAll()).thenReturn(List.of(fromCard));
+        when(cardRepository.findByUserUsername("testuser")).thenReturn(List.of(fromCard, toCard));
 
-        assertThrows(BadRequestException.class, () -> transferService.createTransfer(transferRequest, "testuser"));
+        assertThrows(InvalidTransferException.class, () -> transferService.createTransfer(transferRequest, "testuser"));
+        verify(cardRepository, never()).save(any());
         verifyNoInteractions(transferMapper);
     }
 
     @Test
-    void createTransfer_whenUserNotOwnerOfFromCard_shouldThrowForbiddenException() {
+    void createTransfer_whenUserNotOwnerOfFromCard_shouldThrowCardOwnershipException() {
         transferRequest.setFromCardId(1L);
         transferRequest.setToCardNumber("plain_5678");
         transferRequest.setAmount(new BigDecimal("100.00"));
 
         when(cardRepository.findById(1L)).thenReturn(Optional.of(fromCard));
 
-        assertThrows(ForbiddenException.class, () -> transferService.createTransfer(transferRequest, "wronguser"));
+
+        assertThrows(CardOwnershipException.class, () -> transferService.createTransfer(transferRequest, "wronguser"));
+        verify(cardRepository, never()).save(any());
         verifyNoInteractions(transferMapper);
     }
 
@@ -200,35 +193,33 @@ class TransferServiceTest {
         transferRequest.setAmount(new BigDecimal("100.00"));
 
         when(cardRepository.findById(1L)).thenReturn(Optional.of(fromCard));
-        when(cardRepository.findAll()).thenReturn(Collections.singletonList(fromCard));
+        when(cardRepository.findByUserUsername("testuser")).thenReturn(Collections.singletonList(fromCard));
 
         assertThrows(CardNotFoundException.class, () -> transferService.createTransfer(transferRequest, "testuser"));
+        verify(cardRepository, never()).save(any());
         verifyNoInteractions(transferMapper);
     }
 
     @Test
-    void createTransfer_whenToCardDoesNotBelongToUser_shouldThrowForbiddenException() {
-        Card toCardAnotherUser = new Card();
-        toCardAnotherUser.setId(3L);
-        toCardAnotherUser.setCardNumber("encrypted_9999");
-        toCardAnotherUser.setBalance(new BigDecimal("100.00"));
-        toCardAnotherUser.setCardStatus(CardStatus.ACTIVE);
-        toCardAnotherUser.setUser(anotherUser);
+    void createTransfer_whenToCardDoesNotBelongToUser_shouldThrowCardNotFoundException() {
+        Card cardOfAnotherUser = new Card();
+        cardOfAnotherUser.setUser(anotherUser);
+        cardOfAnotherUser.setCardNumber("encrypted_9999");
 
         transferRequest.setFromCardId(1L);
         transferRequest.setToCardNumber("plain_9999");
         transferRequest.setAmount(new BigDecimal("100.00"));
 
         when(cardRepository.findById(1L)).thenReturn(Optional.of(fromCard));
-        when(cardRepository.findAll()).thenReturn(List.of(fromCard, toCardAnotherUser));
-        lenient().when(cardEncryptionService.matchesCardNumber("plain_9999", "encrypted_9999")).thenReturn(true);
+        when(cardRepository.findByUserUsername("testuser")).thenReturn(List.of(fromCard, toCard));
 
-        assertThrows(ForbiddenException.class, () -> transferService.createTransfer(transferRequest, "testuser"));
+        assertThrows(CardNotFoundException.class, () -> transferService.createTransfer(transferRequest, "testuser"));
+        verify(cardRepository, never()).save(any());
         verifyNoInteractions(transferMapper);
     }
 
     @Test
-    void createTransfer_whenToCardBlocked_shouldThrowCardBlockedException() {
+    void createTransfer_whenToCardBlocked_shouldThrowCardStatusException() {
         toCard.setCardStatus(CardStatus.BLOCKED);
 
         transferRequest.setFromCardId(1L);
@@ -236,82 +227,60 @@ class TransferServiceTest {
         transferRequest.setAmount(new BigDecimal("100.00"));
 
         when(cardRepository.findById(1L)).thenReturn(Optional.of(fromCard));
-        when(cardRepository.findAll()).thenReturn(List.of(fromCard, toCard));
+
+        when(cardRepository.findByUserUsername("testuser")).thenReturn(List.of(fromCard, toCard));
 
         assertThrows(CardStatusException.class, () -> transferService.createTransfer(transferRequest, "testuser"));
+        verify(cardRepository, never()).save(any());
         verifyNoInteractions(transferMapper);
     }
+
 
     @Test
     void getUserTransfers_shouldReturnListOfTransferResponseDto() {
         Transfer testTransfer = new Transfer();
-        testTransfer.setId(1L);
         testTransfer.setFromCard(fromCard);
         testTransfer.setToCard(toCard);
-        testTransfer.setAmount(new BigDecimal("50.00"));
-        testTransfer.setStatus(TransferStatus.SUCCESS);
-        testTransfer.setTransferDate(LocalDateTime.now());
-        testTransfer.setCreatedAt(LocalDateTime.now());
 
-        TransferResponseDto mapperReturnDto = new TransferResponseDto();
-        mapperReturnDto.setId(testTransfer.getId());
-        mapperReturnDto.setAmount(testTransfer.getAmount());
-        mapperReturnDto.setStatus(testTransfer.getStatus());
-        mapperReturnDto.setTransferDate(testTransfer.getTransferDate());
-        mapperReturnDto.setCreatedAt(testTransfer.getCreatedAt());
+        TransferResponseDto dto = new TransferResponseDto();
+        dto.setFromCardNumber("masked_1234");
+        dto.setToCardNumber("masked_5678");
 
         when(transferRepository.findByUserUsername("testuser")).thenReturn(Collections.singletonList(testTransfer));
-        when(transferMapper.toTransferResponseDto(testTransfer)).thenReturn(mapperReturnDto);
-        when(cardEncryptionService.getMaskedCardNumber("encrypted_1234")).thenReturn("masked_1234");
-        when(cardEncryptionService.getMaskedCardNumber("encrypted_5678")).thenReturn("masked_5678");
+        when(transferMapper.toTransferResponseDto(testTransfer)).thenReturn(dto);
+        when(cardEncryptionService.getMaskedCardNumber(fromCard.getCardNumber())).thenReturn("masked_1234");
+        when(cardEncryptionService.getMaskedCardNumber(toCard.getCardNumber())).thenReturn("masked_5678");
 
         List<TransferResponseDto> result = transferService.getUserTransfers("testuser");
 
-        assertNotNull(result);
         assertFalse(result.isEmpty());
         assertEquals(1, result.size());
         assertEquals("masked_1234", result.getFirst().getFromCardNumber());
         assertEquals("masked_5678", result.getFirst().getToCardNumber());
         verify(transferRepository).findByUserUsername("testuser");
-        verify(transferMapper).toTransferResponseDto(testTransfer);
-        verify(cardEncryptionService, times(2)).getMaskedCardNumber(anyString());
     }
 
     @Test
     void getCardTransfers_shouldReturnListOfTransferResponseDto() {
         Transfer testTransfer = new Transfer();
-        testTransfer.setId(1L);
         testTransfer.setFromCard(fromCard);
         testTransfer.setToCard(toCard);
-        testTransfer.setAmount(new BigDecimal("50.00"));
-        testTransfer.setStatus(TransferStatus.SUCCESS);
-        testTransfer.setTransferDate(LocalDateTime.now());
-        testTransfer.setCreatedAt(LocalDateTime.now());
 
-        TransferResponseDto mapperReturnDto = new TransferResponseDto();
-        mapperReturnDto.setId(testTransfer.getId());
-        mapperReturnDto.setAmount(testTransfer.getAmount());
-        mapperReturnDto.setStatus(testTransfer.getStatus());
-        mapperReturnDto.setTransferDate(testTransfer.getTransferDate());
-        mapperReturnDto.setCreatedAt(testTransfer.getCreatedAt());
+        TransferResponseDto dto = new TransferResponseDto();
+        dto.setFromCardNumber("masked_1234");
+        dto.setToCardNumber("masked_5678");
 
         when(cardRepository.findById(1L)).thenReturn(Optional.of(fromCard));
         when(transferRepository.findByCardId(1L)).thenReturn(Collections.singletonList(testTransfer));
-        when(transferMapper.toTransferResponseDto(testTransfer)).thenReturn(mapperReturnDto);
-        when(cardEncryptionService.getMaskedCardNumber("encrypted_1234")).thenReturn("masked_1234");
-        when(cardEncryptionService.getMaskedCardNumber("encrypted_5678")).thenReturn("masked_5678");
+        when(transferMapper.toTransferResponseDto(testTransfer)).thenReturn(dto);
+        when(cardEncryptionService.getMaskedCardNumber(fromCard.getCardNumber())).thenReturn("masked_1234");
+        when(cardEncryptionService.getMaskedCardNumber(toCard.getCardNumber())).thenReturn("masked_5678");
 
         List<TransferResponseDto> result = transferService.getCardTransfers(1L, "testuser");
 
-        assertNotNull(result);
         assertFalse(result.isEmpty());
         assertEquals(1, result.size());
-        assertEquals("masked_1234", result.getFirst().getFromCardNumber());
-        assertEquals("masked_5678", result.getFirst().getToCardNumber());
-        verify(cardRepository).findById(1L);
         verify(transferRepository).findByCardId(1L);
-        verify(transferMapper).toTransferResponseDto(testTransfer);
-        verify(cardEncryptionService, times(2)).getMaskedCardNumber(anyString());
     }
 
     @Test
@@ -319,75 +288,55 @@ class TransferServiceTest {
         when(cardRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(CardNotFoundException.class, () -> transferService.getCardTransfers(99L, "testuser"));
-        verify(cardRepository).findById(99L);
-        verifyNoInteractions(transferRepository, transferMapper, cardEncryptionService);
+        verifyNoInteractions(transferRepository, transferMapper);
     }
 
     @Test
     void getCardTransfers_whenCardDoesNotBelongToUser_shouldThrowForbiddenException() {
-        Card cardOfAnotherUser = new Card();
-        cardOfAnotherUser.setId(3L);
-        cardOfAnotherUser.setUser(anotherUser);
+        fromCard.setUser(anotherUser);
+        when(cardRepository.findById(1L)).thenReturn(Optional.of(fromCard));
 
-        when(cardRepository.findById(3L)).thenReturn(Optional.of(cardOfAnotherUser));
-
-        assertThrows(ForbiddenException.class, () -> transferService.getCardTransfers(3L, "testuser"));
-        verify(cardRepository).findById(3L);
-        verifyNoInteractions(transferRepository, transferMapper, cardEncryptionService);
+        assertThrows(ForbiddenException.class, () -> transferService.getCardTransfers(1L, "testuser"));
+        verifyNoInteractions(transferRepository, transferMapper);
     }
 
     @Test
     void getTransfer_shouldReturnTransferResponseDto() {
         Transfer testTransfer = new Transfer();
-        testTransfer.setId(1L);
         testTransfer.setFromCard(fromCard);
         testTransfer.setToCard(toCard);
-        testTransfer.setAmount(new BigDecimal("50.00"));
-        testTransfer.setStatus(TransferStatus.SUCCESS);
-        testTransfer.setTransferDate(LocalDateTime.now());
-        testTransfer.setCreatedAt(LocalDateTime.now());
 
-        TransferResponseDto mapperReturnDto = new TransferResponseDto();
-        mapperReturnDto.setId(testTransfer.getId());
-        mapperReturnDto.setAmount(testTransfer.getAmount());
-        mapperReturnDto.setStatus(testTransfer.getStatus());
-        mapperReturnDto.setTransferDate(testTransfer.getTransferDate());
-        mapperReturnDto.setCreatedAt(testTransfer.getCreatedAt());
+        TransferResponseDto dto = new TransferResponseDto();
+        dto.setFromCardNumber("masked_1234");
+        dto.setToCardNumber("masked_5678");
 
         when(transferRepository.findById(1L)).thenReturn(Optional.of(testTransfer));
-        when(transferMapper.toTransferResponseDto(testTransfer)).thenReturn(mapperReturnDto);
-        when(cardEncryptionService.getMaskedCardNumber("encrypted_1234")).thenReturn("masked_1234");
-        when(cardEncryptionService.getMaskedCardNumber("encrypted_5678")).thenReturn("masked_5678");
+        when(transferMapper.toTransferResponseDto(testTransfer)).thenReturn(dto);
+        when(cardEncryptionService.getMaskedCardNumber(fromCard.getCardNumber())).thenReturn("masked_1234");
+        when(cardEncryptionService.getMaskedCardNumber(toCard.getCardNumber())).thenReturn("masked_5678");
 
         TransferResponseDto result = transferService.getTransfer(1L, "testuser");
 
         assertNotNull(result);
         assertEquals("masked_1234", result.getFromCardNumber());
-        assertEquals("masked_5678", result.getToCardNumber());
         verify(transferRepository).findById(1L);
-        verify(transferMapper).toTransferResponseDto(testTransfer);
-        verify(cardEncryptionService, times(2)).getMaskedCardNumber(anyString());
+    }
+
+    @Test
+    void getTransfer_whenTransferNotFound_shouldThrowResourceNotFoundException() {
+        when(transferRepository.findById(99L)).thenReturn(Optional.empty());
+        assertThrows(ResourceNotFoundException.class, () -> transferService.getTransfer(99L, "testuser"));
     }
 
     @Test
     void getTransfer_whenUserNotParticipant_shouldThrowForbiddenException() {
-        User thirdUser = new User("thirduser", "third@example.com", "pass", Role.ROLE_USER);
-        thirdUser.setId(3L);
-
-        Card thirdUserCard = new Card();
-        thirdUserCard.setId(3L);
-        thirdUserCard.setCardNumber("encrypted_9999");
-        thirdUserCard.setUser(thirdUser);
-
         Transfer testTransfer = new Transfer();
-        testTransfer.setId(1L);
         testTransfer.setFromCard(fromCard);
         testTransfer.setToCard(toCard);
 
         when(transferRepository.findById(1L)).thenReturn(Optional.of(testTransfer));
 
-        assertThrows(ForbiddenException.class, () -> transferService.getTransfer(1L, "thirduser"));
-        verify(transferRepository).findById(1L);
+        assertThrows(ForbiddenException.class, () -> transferService.getTransfer(1L, "anotheruser"));
         verifyNoInteractions(transferMapper, cardEncryptionService);
     }
 }

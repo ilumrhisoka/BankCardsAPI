@@ -1,5 +1,6 @@
 package com.example.bankcards.controller.auth;
 
+import com.example.bankcards.exception.user.AuthenticationFailedException;
 import com.example.bankcards.model.dto.auth.AuthResponseDto;
 import com.example.bankcards.model.dto.auth.LoginRequest;
 import com.example.bankcards.model.dto.auth.RefreshRequest;
@@ -66,12 +67,12 @@ class AuthControllerTest {
         loginRequest.setUsername("testuser");
         loginRequest.setPassword("wrongpassword");
 
-        given(authService.login(anyString(), anyString())).willReturn(null);
+        given(authService.login(anyString(), anyString())).willThrow(new AuthenticationFailedException("Invalid username or password"));
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginRequest)))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isBadRequest());
     }
 
     @Test
