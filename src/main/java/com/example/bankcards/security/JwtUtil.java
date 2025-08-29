@@ -1,9 +1,10 @@
 package com.example.bankcards.security;
-import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,8 +26,7 @@ public class JwtUtil {
     @Getter
     @Value("${jwt.refresh-token.expiration}")
     private long refreshTokenExpiration;
-    private static final SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS256;
-    private Key key;
+    private SecretKey key;
 
     /**
      * Initializes the {@link Key} object from the secret string after the bean has been constructed.
@@ -34,7 +34,7 @@ public class JwtUtil {
      */
     @PostConstruct
     public void init() {
-        this.key = new SecretKeySpec(secret.getBytes(), SIGNATURE_ALGORITHM.getJcaName());
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     /**
@@ -48,11 +48,11 @@ public class JwtUtil {
      */
     public String generateToken(String username, String role) {
         return Jwts.builder()
-                .setSubject(username)
+                .subject(username)
                 .claim("role", role)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpiration))
-                .signWith(SIGNATURE_ALGORITHM, key)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + accessTokenExpiration))
+                .signWith(key)
                 .compact();
     }
 
@@ -66,9 +66,9 @@ public class JwtUtil {
     public boolean validateToken(String token) {
         try {
             Jwts.parser()
-                    .setSigningKey(key)
+                    .verifyWith(key)
                     .build()
-                    .parseClaimsJws(token);
+                    .parseSignedClaims(token);
             return true;
         } catch (Exception e) {
             return false;
@@ -83,10 +83,10 @@ public class JwtUtil {
      */
     public String getUsernameFromToken(String token) {
         return Jwts.parser()
-                .setSigningKey(key)
+                .verifyWith(key)
                 .build()
-                .parseClaimsJws(token)
-                .getBody()
+                .parseSignedClaims(token)
+                .getPayload()
                 .getSubject();
     }
 
@@ -99,10 +99,10 @@ public class JwtUtil {
      */
     public String getRoleFromToken(String token) {
         Claims claims = Jwts.parser()
-                .setSigningKey(key)
+                .verifyWith(key)
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
         return claims.get("role", String.class);
     }
 
