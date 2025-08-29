@@ -4,6 +4,12 @@
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                                    http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <preConditions onFail="HALT" onFailMessage="Database preconditions failed!">
+        <dbms type="postgresql"/>
+        <runningAs username="ilumrhisoka"/>
+    </preConditions>
+
     <include file="db/migration/changes/001-create-users-table.xml"/>
     <include file="db/migration/changes/002-create-cards-table.xml"/>
     <include file="db/migration/changes/003-create-transfers-table.xml"/>
