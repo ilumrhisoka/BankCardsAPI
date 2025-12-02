@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>MyBank • Dashboard</title>
+    <title>MyBank • Cyber Elite</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
@@ -19,170 +19,230 @@
             --neon-blue: #00f2ff;
             --neon-purple: #bc13fe;
             --neon-green: #0aff60;
-            --glass-bg: rgba(20, 20, 20, 0.6);
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --neon-gold: #ffd700;
+            --glass-bg: rgba(20, 20, 20, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.08);
             --text-main: #ffffff;
-            --text-sec: #b0b0b0;
+            --text-sec: #9ca3af;
         }
 
         body {
             background-color: var(--bg-dark);
-            background-image: radial-gradient(circle at 15% 50%, rgba(188, 19, 254, 0.08), transparent 25%),
-            radial-gradient(circle at 85% 30%, rgba(0, 242, 255, 0.08), transparent 25%);
+            background-image:
+                    radial-gradient(circle at 10% 20%, rgba(0, 242, 255, 0.08), transparent 20%),
+                    radial-gradient(circle at 90% 80%, rgba(188, 19, 254, 0.08), transparent 20%);
             font-family: 'Inter', sans-serif;
             color: var(--text-main);
             min-height: 100vh;
             overflow-x: hidden;
         }
 
-        /* --- UI Elements --- */
-        select option { background-color: #111; color: #fff; padding: 10px; }
-
-        .dropdown-menu {
-            background-color: rgba(20, 20, 20, 0.95);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            min-width: 320px; max-width: 350px; padding: 0; overflow: hidden;
+        /* --- Privacy Mode Blur Class --- */
+        .blur-sensitive {
+            filter: blur(6px);
+            transition: filter 0.3s ease;
+            user-select: none;
         }
-        .dropdown-item {
-            color: #e0e0e0; white-space: normal; padding: 12px 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 0.85rem;
+        .blur-active .sensitive-data {
+            filter: blur(8px);
+            opacity: 0.7;
         }
-        .dropdown-item:hover { background-color: rgba(255, 255, 255, 0.1); color: #fff; }
 
+        /* --- UI Components --- */
         .glass-card {
-            background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border); border-radius: 24px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); transition: transform 0.2s, box-shadow 0.3s;
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s;
         }
-        .glass-card:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4); }
-
-        .navbar-custom { background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.05); }
-
-        /* Inputs */
-        .form-control, .form-select {
-            background-color: rgba(255, 255, 255, 0.05) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important; color: #fff !important;
-        }
-        .form-control:focus, .form-select:focus {
-            border-color: var(--neon-blue) !important; box-shadow: 0 0 15px rgba(0, 242, 255, 0.1) !important;
+        .glass-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0, 242, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.15);
         }
 
-        /* Modal */
-        .modal-content { background-color: #0f0f0f; border: 1px solid var(--glass-border); color: #fff; box-shadow: 0 0 50px rgba(0,0,0,0.9); }
-        .modal-header, .modal-footer { border-color: rgba(255,255,255,0.1); }
-        .btn-close { filter: invert(1); opacity: 0.8; }
-
-        /* Buttons */
-        .btn-primary {
-            background: linear-gradient(90deg, var(--neon-blue), #0077ff); border: none; color: #000; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
-            transition: all 0.3s;
+        /* Navbar */
+        .navbar-custom {
+            background: rgba(10, 10, 10, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
         }
-        .btn-primary:hover { box-shadow: 0 0 25px rgba(0, 242, 255, 0.4); transform: scale(1.02); color: #000; }
 
-        .btn-outline-light { border-color: rgba(255,255,255,0.3); color: #ccc; }
-        .btn-outline-light:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: #fff; }
+        /* Tier Badge Styles */
+        .tier-badge {
+            background: linear-gradient(135deg, #333, #111);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .tier-gold { background: linear-gradient(135deg, #ffd700, #b8860b); color: #000; box-shadow: 0 0 15px rgba(255, 215, 0, 0.4); border: none; }
+        .tier-platinum { background: linear-gradient(135deg, #e0e0e0, #a0a0a0); color: #000; box-shadow: 0 0 15px rgba(255, 255, 255, 0.3); border: none; }
+        .tier-elite { background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple)); color: #fff; box-shadow: 0 0 20px rgba(188, 19, 254, 0.5); border: none; }
 
-        /* Typography */
+        /* Progress Bars */
+        .progress-thin { height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
+        .progress-bar-glow { background: var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue); transition: width 1s ease; }
+
+        /* Typography & Inputs */
         .text-muted { color: var(--text-sec) !important; }
-        .text-dark { color: #fff !important; }
+        .text-white-soft { color: #f0f0f0; }
         .money-font { font-family: 'Space Mono', monospace; letter-spacing: -0.5px; }
 
-        /* Card 3D */
-        .credit-card-wrap { perspective: 1000px; width: 340px; height: 215px; margin: 0 auto; cursor: pointer; }
-        .credit-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.8s; transform-style: preserve-3d; }
-        .credit-card-wrap.flipped .credit-card-inner { transform: rotateY(180deg); }
-        .credit-card-front, .credit-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); overflow: hidden; border: 1px solid rgba(255,255,255,0.15); }
-        .credit-card-front { background: linear-gradient(135deg, #111, #1a1a1a); padding: 25px; display: flex; flex-direction: column; justify-content: space-between; }
-        .credit-card-back { transform: rotateY(180deg); background: #1a1a1a; padding-top: 25px; }
-        .card-number { font-family: 'Space Mono', monospace; font-size: 1.4rem; letter-spacing: 2px; text-shadow: 0 0 8px rgba(255,255,255,0.4); }
+        .form-control, .form-select {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: #fff !important;
+            border-radius: 12px;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--neon-blue) !important;
+            box-shadow: 0 0 0 3px rgba(0, 242, 255, 0.15) !important;
+        }
+        select option { background-color: #111; color: #fff; }
 
-        /* Progress Bar for Financial Health */
-        .progress-custom { height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
-        .progress-bar-custom { height: 100%; background: linear-gradient(90deg, var(--neon-green), var(--neon-blue)); width: 0; transition: width 1.5s ease-out; }
+        /* Cards 3D */
+        .credit-card-wrap { perspective: 1000px; width: 100%; max-width: 360px; height: 220px; margin: 0 auto; cursor: pointer; }
+        .credit-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-style: preserve-3d; }
+        .credit-card-wrap.flipped .credit-card-inner { transform: rotateY(180deg); }
+        .credit-card-front, .credit-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); overflow: hidden; }
+        .credit-card-front {
+            background: linear-gradient(135deg, #121212 0%, #2a2a2a 100%);
+            padding: 25px; display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .credit-card-front::after {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%); pointer-events: none;
+        }
+        .credit-card-back { transform: rotateY(180deg); background: #1a1a1a; padding-top: 25px; }
+
+        /* Modals & Dropdowns */
+        .modal-content { background-color: #111; border: 1px solid var(--glass-border); border-radius: 20px; box-shadow: 0 0 60px rgba(0,0,0,0.8); }
+        .modal-header, .modal-footer { border-color: rgba(255,255,255,0.08); }
+        .btn-close { filter: invert(1); opacity: 0.7; }
+
+        .dropdown-menu { background-color: rgba(20,20,20,0.98); border: 1px solid var(--glass-border); min-width: 300px; }
+        .dropdown-item { color: #ccc; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 10px 15px; white-space: normal; }
+        .dropdown-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+
+        /* Custom Table Styling (Dark) */
+        .table-custom {
+            --bs-table-bg: transparent;
+            --bs-table-color: #e0e0e0;
+            --bs-table-border-color: rgba(255, 255, 255, 0.08);
+        }
+        .table-custom th {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-sec);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 15px;
+        }
+        .table-custom td {
+            padding: 15px 0.5rem;
+            vertical-align: middle;
+        }
+        .table-custom tbody tr {
+            transition: background 0.2s;
+        }
+        .table-custom tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
 
         /* Animations */
-        .animate-up { animation: fadeInUp 0.6s ease-out forwards; opacity: 0; transform: translateY(20px); }
+        .animate-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(20px); }
         @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
         .delay-1 { animation-delay: 0.1s; } .delay-2 { animation-delay: 0.2s; }
 
-        .table { --bs-table-bg: transparent; --bs-table-color: var(--text-main); --bs-table-border-color: rgba(255,255,255,0.1); }
-        .table-hover tbody tr:hover { background-color: rgba(255,255,255,0.05); }
+        /* Pulse Animation for Live Status */
+        .pulse-dot { display: inline-block; width: 8px; height: 8px; background: red; border-radius: 50%; animation: pulse-red 2s infinite; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(255, 0, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); } }
     </style>
 </head>
-<body>
+<body id="appBody">
 
 <nav class="navbar navbar-expand-lg navbar-dark navbar-custom px-4 py-3 sticky-top">
     <div class="container-fluid">
         <a class="navbar-brand fw-bold fs-4 d-flex align-items-center gap-2" href="#">
-            <i class="fas fa-bolt text-info"></i>
+            <div class="d-flex align-items-center justify-content-center" style="width:32px; height:32px; background: var(--neon-blue); border-radius:8px; color:black;">
+                <i class="fas fa-bolt"></i>
+            </div>
             <span style="letter-spacing: -0.5px;">CYBER<span style="color: var(--neon-blue)">BANK</span></span>
         </a>
 
         <div class="d-flex align-items-center gap-3">
-            <button class="btn btn-sm btn-outline-light rounded-pill px-3" onclick="openSupportModal()">
-                <i class="fas fa-headset me-2"></i>Поддержка
+            <button class="btn btn-sm btn-outline-light rounded-pill px-3 border-secondary" onclick="openSupportModal()">
+                <i class="fas fa-headset me-2"></i>Help
             </button>
-            <div class="d-none d-md-flex align-items-center px-4 py-2 rounded-pill" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
-                <small class="text-muted text-uppercase fw-bold me-2" style="font-size: 0.65rem;">Баланс</small>
-                <span class="fw-bold money-font" style="color: #fff;" id="navTotalBalance">--.--</span>
-                <span class="ms-2 text-info small">BYN</span>
+
+            <!-- Balance & Privacy Toggle -->
+            <div class="d-none d-md-flex align-items-center px-3 py-2 rounded-pill" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+                <small class="text-muted text-uppercase fw-bold me-2" style="font-size: 0.65rem;">Total</small>
+                <span class="fw-bold money-font sensitive-data" style="color: #fff;" id="navTotalBalance">--.--</span>
+                <span class="ms-1 text-info small">BYN</span>
+                <button class="btn btn-link btn-sm text-muted ms-2 p-0" onclick="togglePrivacy()" title="Скрыть суммы">
+                    <i class="fas fa-eye" id="privacyIcon"></i>
+                </button>
             </div>
+
+            <!-- Notifications -->
             <div class="dropdown">
-                <button class="btn btn-dark rounded-circle position-relative border border-secondary" style="width: 45px; height: 45px;" data-bs-toggle="dropdown" onclick="markNotificationsRead()">
+                <button class="btn btn-dark rounded-circle position-relative border border-secondary d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;" data-bs-toggle="dropdown" onclick="markNotificationsRead()">
                     <i class="far fa-bell text-light"></i>
                     <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-dark rounded-circle d-none"></span>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end shadow-lg" id="notifList">
-                    <li><span class="dropdown-item text-muted text-center py-3">Нет уведомлений</span></li>
+                    <li><span class="dropdown-item text-muted text-center py-3">Нет новых уведомлений</span></li>
                 </ul>
             </div>
-            <button onclick="logout()" class="btn btn-outline-danger btn-sm rounded-pill px-4 fw-bold">Выход</button>
+
+            <button onclick="logout()" class="btn btn-outline-danger btn-sm rounded-pill px-4 fw-bold">EXIT</button>
         </div>
     </div>
 </nav>
 
 <div class="container py-5">
+    <!-- Header -->
     <div class="row mb-5 align-items-end animate-up">
         <div class="col-lg-8">
-            <!-- Dynamic Greeting -->
-            <h1 class="fw-bold mb-1 display-5" id="greetingText">Добро пожаловать</h1>
-            <p class="text-muted fs-5">Управление цифровыми активами.</p>
+            <div class="d-flex align-items-center gap-3 mb-1">
+                <h1 class="fw-bold mb-0 display-5" id="greetingText">Dashboard</h1>
+                <span class="tier-badge" id="userTierBadge">Loading...</span>
+            </div>
+            <p class="text-muted fs-6 mb-0" id="currentDateDisplay">Загрузка даты...</p>
         </div>
         <div class="col-lg-4 text-lg-end">
-            <button onclick="openTransferModal()" class="btn btn-primary btn-lg rounded-pill shadow-lg px-5">
-                <i class="fas fa-exchange-alt me-2"></i>Перевод
+            <button onclick="openTransferModal()" class="btn btn-primary btn-lg rounded-pill shadow-lg px-5 w-100 w-lg-auto" style="background: linear-gradient(90deg, #00f2ff, #00a8ff); color: #000; border:none;">
+                <i class="fas fa-paper-plane me-2"></i>Перевести
             </button>
         </div>
     </div>
 
+    <!-- Main Grid -->
     <div class="row g-4 mb-5">
         <!-- Cards List -->
         <div class="col-lg-8" id="cardsList">
             <div class="glass-card p-5 text-center text-muted">
                 <div class="spinner-border text-info mb-3" role="status"></div>
-                <div>Загрузка данных...</div>
+                <div>Синхронизация данных...</div>
             </div>
         </div>
 
         <!-- Sidebar -->
         <div class="col-lg-4">
 
-            <!-- Financial Health Widget (New!) -->
-            <div class="glass-card p-4 mb-4 animate-up delay-1">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="text-uppercase text-muted mb-0 fw-bold small"><i class="fas fa-heartbeat me-2"></i>Фин. здоровье</h6>
-                    <span class="badge bg-dark border border-secondary" id="healthBadge">Анализ...</span>
-                </div>
-                <div class="progress-custom mb-2">
-                    <div class="progress-bar-custom" id="healthBar"></div>
-                </div>
-                <small class="text-muted" id="healthText">Загрузка данных о балансе...</small>
-            </div>
-
-            <!-- Analytics -->
+            <!-- Analytics (Doughnut) -->
             <div class="glass-card p-4 mb-4 animate-up delay-1 js-tilt">
-                <h6 class="text-uppercase text-muted mb-3 fw-bold small"><i class="fas fa-chart-pie me-2"></i>Аналитика</h6>
+                <h6 class="text-uppercase text-muted mb-3 fw-bold small"><i class="fas fa-chart-pie me-2"></i>Денежный поток</h6>
                 <div style="height: 200px; position: relative;">
                     <canvas id="financeChart"></canvas>
                     <div id="chartCenterText" class="d-none" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none;">
@@ -190,57 +250,81 @@
                         <div class="fw-bold text-white">Active</div>
                     </div>
                     <div id="chartNoData" class="d-none" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; width: 100%;">
-                        <i class="fas fa-ban fa-2x mb-2 text-muted opacity-50"></i>
+                        <i class="fas fa-ban fa-2x mb-2 text-muted opacity-25"></i>
                         <div class="small text-muted">Нет операций</div>
                     </div>
                 </div>
-                <div class="mt-3 text-center small text-muted">* Внутренние переводы не учитываются</div>
             </div>
 
-            <!-- Currency Converter -->
-            <div class="glass-card p-4 mb-4 animate-up delay-2">
-                <h6 class="text-uppercase text-muted mb-3 fw-bold small"><i class="fas fa-calculator me-2"></i>Конвертер</h6>
-                <div class="input-group mb-2">
-                    <input type="number" id="convAmount" class="form-control" placeholder="100" value="100" oninput="calculateConversion()">
-                    <select id="convCurrency" class="form-select" onchange="calculateConversion()" style="max-width: 90px;">
-                        <option value="USD">USD</option>
-                        <option value="EUR">EUR</option>
-                        <option value="RUB">RUB</option>
-                    </select>
+            <!-- Spending Limit Widget -->
+            <div class="glass-card p-4 mb-4 animate-up delay-1">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="text-uppercase text-muted mb-0 fw-bold small"><i class="fas fa-wallet me-2"></i>Траты за месяц</h6>
+                    <span class="badge bg-dark border border-secondary sensitive-data" id="spendingAmount">0 BYN</span>
                 </div>
-                <div class="d-flex justify-content-between align-items-center p-2 rounded" style="background: rgba(255,255,255,0.05);">
-                    <span class="small text-muted">Результат:</span>
-                    <span class="fw-bold money-font text-info"><span id="convResult">...</span> BYN</span>
+                <div class="progress-thin mb-2">
+                    <div class="progress-bar-glow" id="spendingBar" style="width: 0%;"></div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted" style="font-size: 0.7rem;" id="spendingPercent">0% использовано</small>
+                    <div class="d-flex align-items-center">
+                        <small class="text-muted sensitive-data me-2" style="font-size: 0.7rem;">Лимит: <span id="limitDisplay">5000</span> BYN</small>
+                        <button class="btn btn-link btn-sm p-0 text-muted" onclick="changeLimit()" title="Изменить лимит">
+                            <i class="fas fa-pencil-alt" style="font-size: 0.7rem;"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Rates -->
+            <!-- Rates Widget -->
             <div class="glass-card p-4 animate-up delay-2">
-                <h6 class="text-uppercase text-muted mb-3 fw-bold small"><i class="fas fa-globe me-2"></i>Курсы НБРБ</h6>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="text-uppercase text-muted mb-0 fw-bold small"><i class="fas fa-globe me-2"></i>Рынок (NBRB)</h6>
+                    <div class="pulse-dot"></div>
+                </div>
+
                 <div class="d-flex justify-content-between mb-2 p-2 rounded" style="background: rgba(255,255,255,0.03);">
-                    <span class="fw-bold"><img src="https://flagcdn.com/w20/us.png" class="me-2"> USD</span>
+                    <div class="d-flex align-items-center gap-2"><img src="https://flagcdn.com/w20/us.png" class="rounded-circle" width="20"><span class="fw-bold">USD</span></div>
                     <span class="money-font text-info" id="rate-usd">...</span>
                 </div>
                 <div class="d-flex justify-content-between mb-2 p-2 rounded" style="background: rgba(255,255,255,0.03);">
-                    <span class="fw-bold"><img src="https://flagcdn.com/w20/eu.png" class="me-2"> EUR</span>
+                    <div class="d-flex align-items-center gap-2"><img src="https://flagcdn.com/w20/eu.png" class="rounded-circle" width="20"><span class="fw-bold">EUR</span></div>
                     <span class="money-font text-info" id="rate-eur">...</span>
                 </div>
                 <div class="d-flex justify-content-between p-2 rounded" style="background: rgba(255,255,255,0.03);">
-                    <span class="fw-bold"><img src="https://flagcdn.com/w20/ru.png" class="me-2"> 100 RUB</span>
+                    <div class="d-flex align-items-center gap-2"><img src="https://flagcdn.com/w20/ru.png" class="rounded-circle" width="20"><span class="fw-bold">RUB</span></div>
                     <span class="money-font text-info" id="rate-rub">...</span>
+                </div>
+
+                <!-- Simple Converter -->
+                <div class="mt-3 pt-3 border-top border-secondary">
+                    <div class="input-group input-group-sm">
+                        <input type="number" id="convAmount" class="form-control" placeholder="100" value="100" oninput="calculateConversion()">
+                        <select id="convCurrency" class="form-select" onchange="calculateConversion()" style="max-width: 80px;">
+                            <option value="USD">USD</option><option value="EUR">EUR</option><option value="RUB">RUB</option>
+                        </select>
+                    </div>
+                    <div class="text-end mt-2"><small class="text-muted">≈ <span id="convResult" class="text-white fw-bold">...</span> BYN</small></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- History -->
+    <!-- History Table -->
     <div class="row animate-up delay-2">
         <div class="col-12">
             <div class="glass-card p-4">
-                <h4 class="mb-4">История транзакций</h4>
+                <h5 class="mb-4 fw-bold">Последние транзакции</h5>
                 <div class="table-responsive">
-                    <table class="table align-middle">
-                        <thead><tr class="text-muted text-uppercase small"><th class="ps-3">Тип</th><th>Описание</th><th>Дата</th><th class="text-end pe-3">Сумма (BYN)</th></tr></thead>
+                    <table class="table table-custom align-middle mb-0">
+                        <thead>
+                        <tr>
+                            <th class="ps-3">Тип</th>
+                            <th>Описание</th>
+                            <th>Дата</th>
+                            <th class="text-end pe-3">Сумма (BYN)</th>
+                        </tr>
+                        </thead>
                         <tbody id="historyList"><tr><td colspan="4" class="text-center py-4 text-muted">Загрузка...</td></tr></tbody>
                     </table>
                 </div>
@@ -257,22 +341,22 @@
                 <div class="credit-card-wrap" onclick="this.classList.toggle('flipped')">
                     <div class="credit-card-inner">
                         <div class="credit-card-front">
-                            <div class="d-flex justify-content-between align-items-center"><div class="card-chip" style="width:45px;height:35px;background:linear-gradient(135deg,#d4af37,#f9d976);border-radius:6px;box-shadow:inset 0 1px 3px rgba(0,0,0,0.3);"></div><i class="fas fa-wifi fa-lg opacity-75"></i></div>
-                            <div class="card-number mt-3" id="modalCardNumber" onclick="copyCardNumber(event)" style="cursor:copy">#### #### #### ####</div>
+                            <div class="d-flex justify-content-between align-items-center"><div class="card-chip" style="width:45px;height:35px;background:linear-gradient(135deg,#d4af37,#f9d976);border-radius:6px;"></div><i class="fas fa-wifi fa-lg opacity-75"></i></div>
+                            <div class="card-number mt-3 sensitive-data" id="modalCardNumber" onclick="copyCardNumber(event)" style="cursor:copy">#### #### #### ####</div>
                             <div class="d-flex justify-content-between align-items-end mt-auto">
                                 <div class="text-start"><div class="small opacity-50" style="font-size:0.6rem;">HOLDER</div><div class="card-holder text-uppercase" id="modalCardHolder">NAME</div></div>
-                                <div class="text-end"><div class="small opacity-50" style="font-size:0.6rem;">EXPIRES</div><div class="card-holder" id="modalCardExpiry">MM/YY</div></div>
+                                <div class="text-end"><div class="small opacity-50" style="font-size:0.6rem;">EXPIRES</div><div class="card-holder sensitive-data" id="modalCardExpiry">MM/YY</div></div>
                             </div>
                             <img id="modalCardLogo" src="" style="position:absolute;bottom:20px;right:20px;width:50px;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.5));">
                         </div>
                         <div class="credit-card-back">
                             <div style="background:#000;height:45px;width:100%;margin-top:20px;"></div>
-                            <div class="d-flex justify-content-end px-4 mt-3"><div class="bg-white text-dark d-flex align-items-center justify-content-end px-2" style="width:60px;height:30px;font-family:'Space Mono';font-style:italic;" id="modalCardCvv">000</div></div>
+                            <div class="d-flex justify-content-end px-4 mt-3"><div class="bg-white text-dark d-flex align-items-center justify-content-end px-2 sensitive-data" style="width:60px;height:30px;font-family:'Space Mono';font-style:italic;" id="modalCardCvv">000</div></div>
                         </div>
                     </div>
                 </div>
                 <div class="mt-4">
-                    <h2 class="fw-bold text-info money-font mb-1" id="modalCardBalance">0.00 BYN</h2>
+                    <h2 class="fw-bold text-info money-font mb-1 sensitive-data" id="modalCardBalance">0.00 BYN</h2>
                     <div class="mb-4 small text-muted" id="modalCardStatus">ACTIVE</div>
                     <div id="modalActions" class="d-grid gap-2 col-8 mx-auto"></div>
                 </div>
@@ -286,7 +370,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold"><i class="fas fa-paper-plane me-2 text-info"></i>Перевод</h5>
+                <h5 class="modal-title fw-bold">Перевод средств</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
@@ -347,6 +431,8 @@
     const MC_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1280px-Mastercard-logo.svg.png";
     let myCards = [], allTransactions = [], transferMode = 'others';
     let currentRates = { USD: 0, EUR: 0, RUB: 0 };
+    let isPrivacyOn = false;
+    let currentExpenses = 0; // For limit tracking
 
     document.addEventListener('DOMContentLoaded', () => {
         if (typeof bootstrap === 'undefined') return;
@@ -355,29 +441,74 @@
         supportModal = new bootstrap.Modal(document.getElementById('supportModal'));
         try { VanillaTilt.init(document.querySelectorAll(".js-tilt")); } catch(e) {}
 
-        // Init Time-based Greeting
         updateGreeting();
-
         loadData(); loadNotifications(); fetchNBRBRates();
     });
 
-    function updateGreeting() {
-        const hour = new Date().getHours();
-        const text = document.getElementById('greetingText');
-        if (hour < 6) text.innerText = 'Доброй ночи';
-        else if (hour < 12) text.innerText = 'Доброе утро';
-        else if (hour < 18) text.innerText = 'Добрый день';
-        else text.innerText = 'Добрый вечер';
+    // --- NEW: Custom Limit Feature ---
+    function changeLimit() {
+        const currentLimit = localStorage.getItem('userSpendingLimit') || 5000;
+        const newLimit = prompt("Установите лимит трат на месяц (BYN):", currentLimit);
+
+        if (newLimit !== null && newLimit.trim() !== "") {
+            const parsed = parseFloat(newLimit);
+            if (!isNaN(parsed) && parsed > 0) {
+                localStorage.setItem('userSpendingLimit', parsed);
+                updateSpendingWidget(currentExpenses); // Re-render widget with new limit
+            } else {
+                alert("Пожалуйста, введите корректное число.");
+            }
+        }
     }
 
+    // --- Privacy Mode ---
+    function togglePrivacy() {
+        isPrivacyOn = !isPrivacyOn;
+        const body = document.body;
+        const icon = document.getElementById('privacyIcon');
+
+        if (isPrivacyOn) {
+            body.classList.add('blur-active');
+            icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash');
+        } else {
+            body.classList.remove('blur-active');
+            icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye');
+        }
+    }
+
+    // --- User Tier & Greeting & Date ---
+    function updateGreeting() {
+        const now = new Date();
+        const h = now.getHours();
+        const t = document.getElementById('greetingText');
+
+        if(h<6) t.innerText='Доброй ночи'; else if(h<12) t.innerText='Доброе утро'; else if(h<18) t.innerText='Добрый день'; else t.innerText='Добрый вечер';
+
+        // Add Date Display
+        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('currentDateDisplay').innerText = now.toLocaleDateString('ru-RU', dateOptions);
+    }
+
+    function updateUserTier(balance) {
+        const badge = document.getElementById('userTierBadge');
+        badge.className = 'tier-badge';
+        if (balance > 10000) { badge.innerText = 'CYBER ELITE'; badge.classList.add('tier-elite'); }
+        else if (balance > 1000) { badge.innerText = 'PLATINUM'; badge.classList.add('tier-platinum'); }
+        else if (balance > 100) { badge.innerText = 'GOLD'; badge.classList.add('tier-gold'); }
+        else { badge.innerText = 'STANDARD'; }
+    }
+
+    // --- DATA LOADING ---
     async function loadData() {
         const container = document.getElementById('cardsList');
         try {
             const balRes = await fetch('/api/user/cards/balance');
             if (balRes.status === 401 || balRes.status === 403) { window.location.href = '/login'; return; }
             const bal = await balRes.json();
-            animateValue("navTotalBalance", 0, bal || 0, 1000);
-            updateFinancialHealth(bal || 0);
+            const totalBal = bal || 0;
+
+            animateValue("navTotalBalance", 0, totalBal, 1000);
+            updateUserTier(totalBal);
 
             const cardRes = await fetch('/api/user/cards?page=0&size=50');
             const data = await cardRes.json();
@@ -413,39 +544,15 @@
                         <i class="fab ${logoClass} fa-2x text-white"></i>
                         <span class="badge ${badgeColor}">${card.cardStatus}</span>
                     </div>
-                    <h5 class="font-monospace mb-2 text-white fw-bold" style="letter-spacing:2px; text-shadow: 0 0 5px rgba(255,255,255,0.3)">
+                    <h5 class="font-monospace mb-2 text-white fw-bold sensitive-data" style="letter-spacing:2px; text-shadow: 0 0 5px rgba(255,255,255,0.3)">
                         **** ${card.cardNumber.slice(-4)}
                     </h5>
                     <div class="mt-3">
                         <span class="text-muted small text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px;">Баланс</span>
-                        <h3 class="fw-bold text-white mb-0 money-font">${card.balance.toFixed(2)} <span class="fs-6 text-info">BYN</span></h3>
+                        <h3 class="fw-bold text-white mb-0 money-font sensitive-data">${card.balance.toFixed(2)} <span class="fs-6 text-info">BYN</span></h3>
                     </div>
                 </div>
             </div>`;
-    }
-
-    // --- FINANCIAL HEALTH WIDGET ---
-    function updateFinancialHealth(balance) {
-        const bar = document.getElementById('healthBar');
-        const badge = document.getElementById('healthBadge');
-        const text = document.getElementById('healthText');
-
-        let percentage = 0;
-        let status = "Low";
-        let color = "#ef4444"; // red
-
-        if (balance > 10000) { percentage = 100; status = "Elite"; color = "#bc13fe"; }
-        else if (balance > 1000) { percentage = 75; status = "Excellent"; color = "#0aff60"; }
-        else if (balance > 100) { percentage = 40; status = "Stable"; color = "#00f2ff"; }
-        else { percentage = 15; status = "Low"; color = "#ef4444"; }
-
-        bar.style.width = percentage + "%";
-        bar.style.background = color;
-        bar.style.boxShadow = `0 0 10px ${color}`;
-        badge.innerText = status;
-        badge.style.color = color;
-        badge.style.borderColor = color;
-        text.innerText = `Уровень обеспечения: ${percentage}%`;
     }
 
     async function loadHistory() {
@@ -472,11 +579,31 @@
                     }
                 });
 
+                currentExpenses = exp; // Store global for limit widget
                 allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
                 renderHistory(allTransactions);
                 renderChart(inc, exp);
+                updateSpendingWidget(exp);
             } else { tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Ошибка</td></tr>'; }
         } catch(e) { tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Ошибка</td></tr>'; }
+    }
+
+    // --- Spending Widget with Custom Limit ---
+    function updateSpendingWidget(expenses) {
+        const limit = parseFloat(localStorage.getItem('userSpendingLimit')) || 5000;
+        const percent = Math.min((expenses / limit) * 100, 100);
+
+        document.getElementById('spendingAmount').innerText = expenses.toFixed(2) + ' BYN';
+        document.getElementById('limitDisplay').innerText = limit;
+        document.getElementById('spendingPercent').innerText = percent.toFixed(0) + '% использовано';
+
+        const bar = document.getElementById('spendingBar');
+        bar.style.width = percent + '%';
+
+        // Color logic
+        if (percent > 90) bar.style.background = '#ef4444'; // Red
+        else if (percent > 75) bar.style.background = '#eab308'; // Yellow
+        else bar.style.background = 'var(--neon-blue)'; // Default
     }
 
     function renderHistory(l) {
@@ -487,9 +614,9 @@
             let c, s, icon;
             if (x.type === 'out') { c = 'text-danger'; s = '-'; icon = '<i class="fas fa-arrow-up text-danger"></i>'; }
             else if (x.type === 'in') { c = 'text-info'; s = '+'; icon = '<i class="fas fa-arrow-down text-info"></i>'; }
-            else { c = 'text-muted'; s = ''; icon = '<i class="fas fa-exchange-alt text-muted"></i>'; }
+            else { c = 'text-secondary'; s = ''; icon = '<i class="fas fa-exchange-alt text-secondary"></i>'; }
 
-            t.innerHTML += `<tr><td class="ps-3">${icon}</td><td>${x.desc}</td><td class="text-muted small">${new Date(x.date).toLocaleDateString()}</td><td class="text-end pe-3 fw-bold money-font ${c}">${s}${x.amount.toFixed(2)}</td></tr>`;
+            t.innerHTML += `<tr><td class="ps-3">${icon}</td><td>${x.desc}</td><td class="text-muted small">${new Date(x.date).toLocaleDateString()}</td><td class="text-end pe-3 fw-bold money-font sensitive-data ${c}">${s}${x.amount.toFixed(2)}</td></tr>`;
         });
     }
 
@@ -497,19 +624,12 @@
         const ctxCanvas = document.getElementById('financeChart');
         const noData = document.getElementById('chartNoData');
         const centerText = document.getElementById('chartCenterText');
-
         if(financeChart) financeChart.destroy();
 
         if(inc === 0 && exp === 0) {
-            ctxCanvas.classList.add('d-none');
-            centerText.classList.add('d-none');
-            noData.classList.remove('d-none');
-            return;
+            ctxCanvas.classList.add('d-none'); centerText.classList.add('d-none'); noData.classList.remove('d-none'); return;
         }
-
-        ctxCanvas.classList.remove('d-none');
-        centerText.classList.remove('d-none');
-        noData.classList.add('d-none');
+        ctxCanvas.classList.remove('d-none'); centerText.classList.remove('d-none'); noData.classList.add('d-none');
 
         const ctx = ctxCanvas.getContext('2d');
         financeChart = new Chart(ctx, {
@@ -531,11 +651,9 @@
             if(usd) { document.getElementById('rate-usd').innerText = usd.Cur_OfficialRate.toFixed(4); currentRates.USD = usd.Cur_OfficialRate; }
             if(eur) { document.getElementById('rate-eur').innerText = eur.Cur_OfficialRate.toFixed(4); currentRates.EUR = eur.Cur_OfficialRate; }
             if(rub) { document.getElementById('rate-rub').innerText = rub.Cur_OfficialRate.toFixed(4); currentRates.RUB = rub.Cur_OfficialRate / 100; }
-
             calculateConversion();
         } catch(e){}
     }
-
     function calculateConversion() {
         const amt = parseFloat(document.getElementById('convAmount').value) || 0;
         const curr = document.getElementById('convCurrency').value;
