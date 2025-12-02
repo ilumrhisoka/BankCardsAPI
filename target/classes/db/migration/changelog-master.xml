@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                                   http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <preConditions onFail="HALT" onFailMessage="Database preconditions failed!">
+        <dbms type="postgresql"/>
+        <!-- <runningAs username="ilumrhisoka"/> --> <!-- Убрано, так как имя пользователя может быть другим -->
+    </preConditions>
+
+    <include file="db/migration/changes/001-create-users-table.xml"/>
+    <include file="db/migration/changes/002-create-accounts-table.xml"/>
+    <include file="db/migration/changes/003-create-cards-table.xml"/>
+    <include file="db/migration/changes/004-create-transactions-table.xml"/>
+    <include file="db/migration/changes/005-create-service-fees-table.xml"/>
+    <include file="db/migration/changes/006-create-support-tickets-table.xml"/>
+    <include file="db/migration/changes/007-create-notifications-table.xml"/>
+    <include file="db/migration/changes/008-create-transfers-table.xml"/>
+    <include file="db/migration/changes/009-create-refresh-token-table.xml"/>
+
+</databaseChangeLog>
