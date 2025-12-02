@@ -21,10 +21,9 @@
             --neon-blue: #00f2ff;
             --neon-purple: #bc13fe;
             --neon-green: #0aff60;
-            --glass-bg: rgba(20, 20, 20, 0.9); /* Более плотный фон для читаемости */
+            --glass-bg: rgba(20, 20, 20, 0.9);
             --glass-border: rgba(255, 255, 255, 0.15);
             --text-main: #ffffff;
-            --text-sec: #cccccc;
         }
 
         body {
@@ -41,16 +40,15 @@
         }
 
         /* --- CRITICAL CONTRAST FIXES --- */
-        /* Принудительно красим весь текст в белый */
         body, h1, h2, h3, h4, h5, h6, p, span, div, label, td, th, i { color: #ffffff !important; }
         .text-muted { color: #aaaaaa !important; }
-        .text-dark { color: #ffffff !important; }
+
         .text-info { color: var(--neon-blue) !important; }
         .text-warning { color: #ffd700 !important; }
         .text-danger { color: #ff4444 !important; }
         .text-success { color: var(--neon-green) !important; }
 
-        /* Inputs & Selects - FORCE DARK */
+        /* Inputs & Selects */
         .form-control, .form-select {
             background-color: #111 !important;
             border: 1px solid #444 !important;
@@ -63,10 +61,9 @@
             box-shadow: 0 0 10px rgba(0, 242, 255, 0.2) !important;
             color: #fff !important;
         }
-        .form-control::placeholder { color: #777 !important; }
         select option { background-color: #000; color: #fff; }
 
-        /* Modals - FORCE DARK */
+        /* Modals */
         .modal-content {
             background-color: #0f0f0f !important;
             border: 1px solid var(--glass-border) !important;
@@ -77,18 +74,44 @@
         .btn-close { filter: invert(1) !important; opacity: 1 !important; }
 
         /* --- UI COMPONENTS --- */
+
+        /* Glass Card with Interactive Spotlight (Идея 3) */
         .glass-card {
             background: var(--glass-bg);
             backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
             border: 1px solid var(--glass-border); border-radius: 24px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
             transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+            overflow: hidden; /* Важно для света */
         }
         .glass-card:hover { transform: translateY(-4px); box-shadow: 0 0 25px rgba(0, 242, 255, 0.1); border-color: rgba(255, 255, 255, 0.3); }
 
+        /* Эффект прожектора */
+        .glass-card::before {
+            content: "";
+            position: absolute;
+            height: 100%; width: 100%;
+            top: 0; left: 0;
+            background: radial-gradient(
+                    600px circle at var(--mouse-x) var(--mouse-y),
+                    rgba(255, 255, 255, 0.06),
+                    transparent 40%
+            );
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        /* Свет появляется при наведении на контейнер списка */
+        #cardsList:hover .glass-card::before { opacity: 1; }
+        /* Поднимаем контент над светом */
+        .glass-card > * { position: relative; z-index: 2; }
+
+
         .navbar-custom { background: rgba(5, 5, 5, 0.95); border-bottom: 1px solid var(--glass-border); z-index: 1000; }
 
-        /* LIVE TICKER (FIXED) */
+        /* TICKER */
         .ticker-wrap {
             width: 100%; overflow: hidden; background: #000; border-bottom: 1px solid rgba(255,255,255,0.1); height: 36px;
             display: flex; align-items: center; position: relative; z-index: 990;
@@ -105,11 +128,34 @@
             background: linear-gradient(90deg, var(--neon-blue), #0077ff) !important; border: none;
             color: #000 !important; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
         }
-        .btn-primary:hover { box-shadow: 0 0 25px rgba(0, 242, 255, 0.6); transform: scale(1.02); }
+
+        /* Glitch Button Effect (Идея 2) */
+        .btn-glitch { position: relative; overflow: hidden; }
+        .btn-glitch::before {
+            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: 0.5s;
+        }
+        .btn-glitch:hover::before { left: 100%; }
+        .btn-glitch:hover {
+            animation: glitch-anim 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
+            background: var(--neon-blue) !important; color: black !important;
+            box-shadow: 4px 4px 0px var(--neon-purple); transform: translate(-2px, -2px);
+        }
+        @keyframes glitch-anim {
+            0% { transform: translate(0) } 20% { transform: translate(-2px, 2px) }
+            40% { transform: translate(-2px, -2px) } 60% { transform: translate(2px, 2px) }
+            80% { transform: translate(2px, -2px) } 100% { transform: translate(0) }
+        }
+
         .btn-outline-light { border-color: rgba(255,255,255,0.3); color: #ccc !important; }
         .btn-outline-light:hover { background: rgba(255,255,255,0.1); color: #fff !important; }
 
-        /* Quick Transfers */
+        /* Avatars */
+        .cyber-avatar { width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--neon-blue); background: #000; cursor: pointer; transition: transform 0.3s; }
+        .cyber-avatar:hover { transform: scale(1.1) rotate(5deg); box-shadow: 0 0 15px var(--neon-blue); }
+
+        /* Quick Transfer Items */
         .quick-avatar-wrap { text-align: center; cursor: pointer; transition: transform 0.2s; min-width: 60px; position: relative; }
         .quick-avatar-wrap:hover { transform: scale(1.1); }
         .quick-avatar-img { width: 50px; height: 50px; border-radius: 50%; background: #222; border: 2px solid var(--neon-blue); padding: 2px; }
@@ -118,34 +164,76 @@
         .delete-quick { position: absolute; top: -2px; right: 0; font-size: 10px; color: white !important; background: #ff4444; border-radius: 50%; width: 18px; height: 18px; display: none; align-items: center; justify-content: center; border: 1px solid #fff; }
         .quick-avatar-wrap:hover .delete-quick { display: flex; }
 
-        /* Avatar Main */
-        .cyber-avatar { width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--neon-blue); background: #000; cursor: pointer; transition: transform 0.3s; }
-        .cyber-avatar:hover { transform: scale(1.1) rotate(5deg); box-shadow: 0 0 15px var(--neon-blue); }
-
         /* Table */
         .table-custom { --bs-table-bg: transparent; --bs-table-color: #fff; }
         .table-custom th { color: #aaa !important; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 15px; font-size: 0.75rem; text-transform: uppercase; }
         .table-custom td { padding: 15px 0.5rem; vertical-align: middle; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .table-custom tbody tr:hover { background-color: rgba(255, 255, 255, 0.1); }
 
-        /* Matrix Rain Canvas */
         #matrixCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -2; opacity: 0.07; pointer-events: none; }
 
-        /* Tier Badge */
         .tier-badge {
             background: #222; border: 1px solid rgba(255,255,255,0.2); color: #fff !important;
             padding: 5px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
         }
         .tier-elite { background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple)); border:none; box-shadow: 0 0 15px rgba(188, 19, 254, 0.5); }
 
-        /* Card 3D */
+        /* --- 3D CREDIT CARD (IMPROVED) --- */
         .credit-card-wrap { perspective: 1000px; width: 100%; max-width: 360px; height: 220px; margin: 0 auto; cursor: pointer; }
         .credit-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.8s; transform-style: preserve-3d; }
         .credit-card-wrap.flipped .credit-card-inner { transform: rotateY(180deg); }
-        .credit-card-front { background: linear-gradient(135deg, #111, #222); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); backface-visibility: hidden; display: flex; flex-direction: column; justify-content: space-between; }
-        .credit-card-back { background: #1a1a1a; padding-top: 25px; border-radius: 20px; backface-visibility: hidden; transform: rotateY(180deg); position: absolute; top:0; left:0; width:100%; height:100%; }
-        .card-bottom-row { margin-right: 60px; } /* Fix overlap */
-        .card-number { font-family: 'Space Mono', monospace; font-size: 1.4rem; letter-spacing: 2px; text-shadow: 0 0 8px rgba(255,255,255,0.4); text-align: left; margin-top: 10px; }
+
+        .credit-card-front, .credit-card-back {
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            border-radius: 20px;
+            backface-visibility: hidden;
+            border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        /* Лицевая сторона - красивая с шумом и градиентом */
+        .credit-card-front {
+            background: radial-gradient(circle at 10% 10%, #2a2a2a, #0a0a0a);
+            padding: 25px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            overflow: hidden;
+        }
+        /* Голографический эффект */
+        .credit-card-front::before {
+            content: ''; position: absolute; top: 0; left: -150%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: skewX(-20deg); pointer-events: none;
+            animation: holo-shine 4s infinite linear;
+        }
+        @keyframes holo-shine { 0% { left: -150%; } 20% { left: 150%; } 100% { left: 150%; } }
+
+        .credit-card-back { background: #111; padding-top: 25px; transform: rotateY(180deg); }
+
+        .card-bottom-row { margin-right: 60px; }
+        .card-number { font-family: 'Space Mono', monospace; font-size: 1.4rem; letter-spacing: 3px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); text-align: left; margin-top: 10px; color: #fff !important; }
+
+        .card-chip {
+            width:45px; height:35px;
+            background: linear-gradient(135deg, #d4af37, #f9d976, #d4af37);
+            border-radius:6px; position: relative;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.3); border: 1px solid #8a6e2f;
+        }
+        .card-chip::after { content:''; position: absolute; top:50%; left:0; width:100%; height:1px; background: rgba(0,0,0,0.2); }
+
+        .magnetic-stripe { background: #222; height: 45px; width: 100%; margin-top: 20px; border-top: 1px solid #333; border-bottom: 1px solid #333; }
+
+        /* CVV FIX */
+        #modalCardCvv {
+            background-color: #fff !important; color: #000 !important;
+            font-family: 'Space Mono', monospace; font-style: italic; letter-spacing: 2px;
+            font-weight: bold; font-size: 1.1rem;
+            display: flex; align-items: center; justify-content: flex-end;
+            padding-right: 10px; width: 60px; height: 35px; border-radius: 4px;
+        }
+
+        /* Hacker Text Effect (Идея 1) */
+        .hacker-text { font-family: 'Space Mono', monospace; cursor: default; }
+        .hacker-text:hover { color: var(--neon-green) !important; text-shadow: 0 0 8px var(--neon-green); }
 
         /* Utils */
         .money-font { font-family: 'Space Mono', monospace; letter-spacing: -0.5px; }
@@ -156,7 +244,6 @@
         .pulse-dot { display: inline-block; width: 8px; height: 8px; background: #0aff60; border-radius: 50%; animation: pulse-green 2s infinite; box-shadow: 0 0 10px #0aff60; }
         @keyframes pulse-green { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-        /* Dropdown Fix */
         .dropdown-menu { background-color: #1a1a1a !important; border: 1px solid #444 !important; }
         .dropdown-item { color: #fff !important; border-bottom: 1px solid #333; }
         .dropdown-item:hover { background-color: #333 !important; }
@@ -170,7 +257,7 @@
     <div class="container-fluid">
         <a class="navbar-brand fw-bold fs-4 d-flex align-items-center gap-2" href="#">
             <div class="d-flex align-items-center justify-content-center" style="width:32px; height:32px; background: var(--neon-blue); border-radius:8px; color:black;">
-                <i class="fas fa-bolt text-dark"></i>
+                <i class="fas fa-bolt text-dark" style="color: black !important;"></i>
             </div>
             <span style="letter-spacing: -0.5px;">CYBER<span style="color: var(--neon-blue) !important">BANK</span></span>
         </a>
@@ -181,7 +268,7 @@
             </button>
 
             <div class="d-none d-md-flex align-items-center px-3 py-2 rounded-pill" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">
-                <span class="fw-bold money-font sensitive-data text-white" id="navTotalBalance">--.--</span>
+                <span class="fw-bold money-font sensitive-data text-white hacker-text" id="navTotalBalance">--.--</span>
                 <span class="ms-1 text-info small">BYN</span>
                 <button class="btn btn-link btn-sm text-white ms-2 p-0 opacity-75 hover-opacity-100" onclick="togglePrivacy()" title="Скрыть суммы">
                     <i class="fas fa-eye" id="privacyIcon"></i>
@@ -228,7 +315,8 @@
             <div class="mt-2 small text-muted"><i class="fas fa-keyboard me-1"></i> Hotkeys: <span class="badge bg-secondary border border-light text-white">T</span> Transfer <span class="badge bg-secondary border border-light text-white">H</span> History</div>
         </div>
         <div class="col-lg-4 text-lg-end">
-            <button onclick="openTransferModal()" class="btn btn-lg rounded-pill shadow-lg px-5 w-100 w-lg-auto fw-bold btn-primary">
+            <!-- GLITCH BUTTON -->
+            <button onclick="openTransferModal()" class="btn btn-lg rounded-pill shadow-lg px-5 w-100 w-lg-auto fw-bold btn-primary btn-glitch">
                 <i class="fas fa-paper-plane me-2"></i>ПЕРЕВОД
             </button>
         </div>
@@ -245,8 +333,7 @@
 
         <!-- Sidebar -->
         <div class="col-lg-4">
-
-            <!-- Quick Transfer (Backend) -->
+            <!-- Quick Transfer -->
             <div class="glass-card p-4 mb-4 animate-up delay-1">
                 <h6 class="text-uppercase text-muted mb-3 fw-bold small"><i class="fas fa-bolt me-2 text-warning"></i>Быстрый перевод</h6>
                 <div class="d-flex gap-3 overflow-x-auto pb-2 align-items-start" id="quickTransferList">
@@ -335,8 +422,56 @@
     </div>
 </div>
 
-<!-- Modal: View Card -->
-<div class="modal fade" id="viewCardModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-body text-center p-4"><div class="credit-card-wrap" onclick="this.classList.toggle('flipped')"><div class="credit-card-inner"><div class="credit-card-front"><div class="d-flex justify-content-between align-items-center"><div class="card-chip" style="width:45px;height:35px;background:linear-gradient(135deg,#d4af37,#f9d976);border-radius:6px;box-shadow:inset 0 1px 3px rgba(0,0,0,0.3);"></div><i class="fas fa-wifi fa-lg opacity-75"></i></div><div class="card-number mt-3 sensitive-data" id="modalCardNumber" onclick="copyCardNumber(event)" style="cursor:copy">####</div><div class="d-flex justify-content-between align-items-end mt-auto card-bottom-row"><div class="text-start"><div class="small opacity-50" style="font-size:0.6rem;">HOLDER</div><div class="card-holder text-uppercase" id="modalCardHolder">NAME</div></div><div class="text-end"><div class="small opacity-50" style="font-size:0.6rem;">EXPIRES</div><div class="card-holder sensitive-data" id="modalCardExpiry">MM/YY</div></div></div><img id="modalCardLogo" src="" style="position:absolute;bottom:20px;right:20px;width:50px;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.5));"></div><div class="credit-card-back"><div style="background:#000;height:45px;width:100%;margin-top:20px;"></div><div class="d-flex justify-content-end px-4 mt-3"><div class="bg-white text-dark d-flex align-items-center justify-content-end px-2 sensitive-data" style="width:60px;height:30px;font-family:'Space Mono';font-style:italic;" id="modalCardCvv">000</div></div></div></div></div><div class="mt-4"><h2 class="fw-bold text-info money-font mb-1 sensitive-data" id="modalCardBalance">0.00 BYN</h2><div class="mb-4 small text-muted" id="modalCardStatus">ACTIVE</div><div id="modalActions" class="d-grid gap-2 col-8 mx-auto"></div></div></div></div></div></div>
+<!-- Modal: View Card (FIXED) -->
+<div class="modal fade" id="viewCardModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center p-4">
+                <div class="credit-card-wrap" onclick="this.classList.toggle('flipped')">
+                    <div class="credit-card-inner">
+                        <div class="credit-card-front">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="card-chip"></div>
+                                <i class="fas fa-wifi fa-lg opacity-75"></i>
+                            </div>
+                            <div class="card-number mt-3 sensitive-data" id="modalCardNumber" onclick="copyCardNumber(event)" style="cursor:copy">####</div>
+                            <div class="d-flex justify-content-between align-items-end mt-auto card-bottom-row">
+                                <div class="text-start">
+                                    <div class="small opacity-50" style="font-size:0.6rem;">HOLDER</div>
+                                    <div class="card-holder text-uppercase" id="modalCardHolder">NAME</div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="small opacity-50" style="font-size:0.6rem;">EXPIRES</div>
+                                    <div class="card-holder sensitive-data" id="modalCardExpiry">MM/YY</div>
+                                </div>
+                            </div>
+                            <img id="modalCardLogo" src="" style="position:absolute;bottom:20px;right:20px;width:50px;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.5));">
+                        </div>
+                        <div class="credit-card-back">
+                            <div class="magnetic-stripe"></div>
+                            <div class="d-flex justify-content-end px-4 mt-3">
+                                <div class="small text-muted me-2" style="font-size:0.7rem;">CVV</div>
+                                <div id="modalCardCvv" class="sensitive-data">000</div>
+                            </div>
+                            <div class="mt-4 px-4 text-start">
+                                <small class="text-muted" style="font-size:0.6rem; display:block; line-height:1.2;">
+                                    This card is property of CyberBank. If found, please return to the nearest branch or destroy immediately. Unauthorized use is a federal crime.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <h2 class="fw-bold text-info money-font mb-1 sensitive-data" id="modalCardBalance">0.00 BYN</h2>
+                    <div class="mb-4 small text-muted" id="modalCardStatus">ACTIVE</div>
+                    <div id="modalActions" class="d-grid gap-2 col-8 mx-auto"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Other Modals -->
 <div class="modal fade" id="transferModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title fw-bold">Перевод средств</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body p-4"><form id="transferForm"><div class="mb-3"><label class="small text-muted mb-1">С карты</label><select id="transferFromCard" class="form-select"></select></div><div class="d-flex bg-dark rounded p-1 mb-3 border border-secondary"><button type="button" class="btn btn-sm flex-fill text-white" id="btnTypeOthers" onclick="toggleTransferType('others')" style="background: rgba(255,255,255,0.1)">Клиенту</button><button type="button" class="btn btn-sm flex-fill text-muted" id="btnTypeSelf" onclick="toggleTransferType('self')">Свои счета</button></div><div class="mb-3"><label class="small text-muted mb-1">Получатель</label><div id="targetInputContainer"><input type="text" id="transferToCardInput" class="form-control money-font" placeholder="0000 0000 0000 0000" maxlength="19"></div><div id="targetSelectContainer" class="d-none"><select id="transferToCardSelect" class="form-select"></select></div></div><div class="mb-4"><label class="small text-muted mb-1">Сумма (BYN)</label><input type="number" id="transferAmount" class="form-control fs-4 fw-bold text-info money-font" placeholder="0.00"></div><button type="button" class="btn btn-primary w-100 rounded-pill py-2" onclick="submitTransfer()">Отправить</button></form></div></div></div></div>
 <div class="modal fade" id="supportModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title fw-bold">Поддержка</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body p-0"><div class="row g-0"><div class="col-md-5 border-end border-secondary" style="height: 400px; overflow-y: auto;"><div class="p-3 border-bottom border-secondary bg-dark sticky-top d-flex justify-content-between"><span class="small fw-bold text-muted">ИСТОРИЯ</span><button class="btn btn-sm btn-link text-info p-0" onclick="loadMyTickets()"><i class="fas fa-sync"></i></button></div><div id="ticketsList" class="list-group list-group-flush"></div></div><div class="col-md-7 p-4"><h6 class="fw-bold mb-3">Новый вопрос</h6><input type="text" id="ticketSubject" class="form-control mb-3" placeholder="Тема"><textarea id="ticketDesc" class="form-control mb-3" rows="6" placeholder="Описание проблемы..."></textarea><div class="text-end"><button type="button" class="btn btn-primary px-4 rounded-pill" onclick="createTicket()">Создать</button></div></div></div></div></div></div></div>
 <div id="copyToast" class="position-fixed bottom-0 start-50 translate-middle-x mb-4 bg-white text-dark px-4 py-2 rounded-pill fw-bold opacity-0 shadow-lg" style="z-index: 9999; transition: opacity 0.3s; border: 1px solid var(--neon-blue);"><i class="fas fa-check-circle text-success me-2"></i>Скопировано в буфер</div>
@@ -367,11 +502,55 @@
         updateGreeting();
         loadProfileAndData();
         loadNotifications();
-        loadQuickTransfers(); // Load from BACKEND
+        loadQuickTransfers();
         fetchNBRBRates();
+
+        // --- NEW FEATURES INIT ---
+
+        // 1. Interactive Spotlight on Cards
+        const cardsListEl = document.getElementById("cardsList");
+        if(cardsListEl) {
+            cardsListEl.onmousemove = e => {
+                for(const card of document.getElementsByClassName("glass-card")) {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    card.style.setProperty("--mouse-x", `${x}px`);
+                    card.style.setProperty("--mouse-y", `${y}px`);
+                }
+            };
+        }
+
+        // 2. Hacker Text Effect on Balance
+        const balanceEl = document.getElementById("navTotalBalance");
+        if(balanceEl) {
+            balanceEl.addEventListener('mouseover', event => {
+                if(!event.target.dataset.value) event.target.dataset.value = event.target.innerText;
+                hackEffect(event.target);
+            });
+        }
     });
 
-    // --- QUICK TRANSFER LOGIC (BACKEND INTEGRATION) ---
+    // Hacker Effect Function
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$#%&@";
+    function hackEffect(element) {
+        let iteration = 0;
+        const originalText = element.dataset.value;
+        clearInterval(element.interval);
+        element.interval = setInterval(() => {
+            element.innerText = originalText
+                .split("")
+                .map((letter, index) => {
+                    if(index < iteration) return originalText[index];
+                    return letters[Math.floor(Math.random() * 26)];
+                })
+                .join("");
+            if(iteration >= originalText.length) clearInterval(element.interval);
+            iteration += 1 / 3;
+        }, 30);
+    }
+
+    // --- QUICK TRANSFER LOGIC ---
     async function loadQuickTransfers() {
         const list = document.getElementById('quickTransferList');
         try {
@@ -406,7 +585,6 @@
             list.appendChild(item);
         });
 
-        // Add Button
         const addButton = document.createElement('div');
         addButton.className = 'quick-avatar-wrap';
         addButton.innerHTML = `<div class="quick-avatar-add"><i class="fas fa-plus"></i></div><span class="quick-avatar-name" style="color:var(--neon-blue)">New</span>`;
@@ -504,7 +682,12 @@
             const balRes = await fetch('/api/user/cards/balance');
             if (balRes.status === 401 || balRes.status === 403) { window.location.href = '/login'; return; }
             const bal = await balRes.json();
-            animateValue("navTotalBalance", 0, bal || 0, 1000);
+
+            // Hack effect init for balance
+            const balEl = document.getElementById('navTotalBalance');
+            balEl.dataset.value = (bal || 0).toFixed(2);
+            hackEffect(balEl);
+
             updateUserTier(bal || 0);
 
             const cardRes = await fetch('/api/user/cards?page=0&size=50');
