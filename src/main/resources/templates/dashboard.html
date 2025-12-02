@@ -2,13 +2,15 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>MyBank • Cyber Elite</title>
+    <title>MyBank • Ultimate Cyber</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
+    <!-- CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- JS Libs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.3.0/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
@@ -19,164 +21,158 @@
             --neon-blue: #00f2ff;
             --neon-purple: #bc13fe;
             --neon-green: #0aff60;
-            --neon-gold: #ffd700;
-            --glass-bg: rgba(20, 20, 20, 0.7);
-            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-bg: rgba(20, 20, 20, 0.9); /* Более плотный фон для читаемости */
+            --glass-border: rgba(255, 255, 255, 0.15);
             --text-main: #ffffff;
-            --text-sec: #9ca3af;
+            --text-sec: #cccccc;
         }
 
         body {
             background-color: var(--bg-dark);
             background-image:
-                    radial-gradient(circle at 10% 20%, rgba(0, 242, 255, 0.08), transparent 20%),
-                    radial-gradient(circle at 90% 80%, rgba(188, 19, 254, 0.08), transparent 20%);
+                    linear-gradient(rgba(0, 242, 255, 0.03) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0, 242, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
             font-family: 'Inter', sans-serif;
             color: var(--text-main);
             min-height: 100vh;
             overflow-x: hidden;
+            position: relative;
         }
 
-        /* --- Privacy Mode Blur Class --- */
-        .blur-sensitive {
-            filter: blur(6px);
-            transition: filter 0.3s ease;
-            user-select: none;
-        }
-        .blur-active .sensitive-data {
-            filter: blur(8px);
-            opacity: 0.7;
-        }
+        /* --- CRITICAL CONTRAST FIXES --- */
+        /* Принудительно красим весь текст в белый */
+        body, h1, h2, h3, h4, h5, h6, p, span, div, label, td, th, i { color: #ffffff !important; }
+        .text-muted { color: #aaaaaa !important; }
+        .text-dark { color: #ffffff !important; }
+        .text-info { color: var(--neon-blue) !important; }
+        .text-warning { color: #ffd700 !important; }
+        .text-danger { color: #ff4444 !important; }
+        .text-success { color: var(--neon-green) !important; }
 
-        /* --- UI Components --- */
-        .glass-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s;
-        }
-        .glass-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 30px rgba(0, 242, 255, 0.05);
-            border-color: rgba(255, 255, 255, 0.15);
-        }
-
-        /* Navbar */
-        .navbar-custom {
-            background: rgba(10, 10, 10, 0.85);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--glass-border);
-        }
-
-        /* Tier Badge Styles */
-        .tier-badge {
-            background: linear-gradient(135deg, #333, #111);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: #fff;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-        .tier-gold { background: linear-gradient(135deg, #ffd700, #b8860b); color: #000; box-shadow: 0 0 15px rgba(255, 215, 0, 0.4); border: none; }
-        .tier-platinum { background: linear-gradient(135deg, #e0e0e0, #a0a0a0); color: #000; box-shadow: 0 0 15px rgba(255, 255, 255, 0.3); border: none; }
-        .tier-elite { background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple)); color: #fff; box-shadow: 0 0 20px rgba(188, 19, 254, 0.5); border: none; }
-
-        /* Progress Bars */
-        .progress-thin { height: 6px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
-        .progress-bar-glow { background: var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue); transition: width 1s ease; }
-
-        /* Typography & Inputs */
-        .text-muted { color: var(--text-sec) !important; }
-        .text-white-soft { color: #f0f0f0; }
-        .money-font { font-family: 'Space Mono', monospace; letter-spacing: -0.5px; }
-
+        /* Inputs & Selects - FORCE DARK */
         .form-control, .form-select {
-            background-color: rgba(255, 255, 255, 0.05) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            background-color: #111 !important;
+            border: 1px solid #444 !important;
             color: #fff !important;
             border-radius: 12px;
         }
         .form-control:focus, .form-select:focus {
             border-color: var(--neon-blue) !important;
-            box-shadow: 0 0 0 3px rgba(0, 242, 255, 0.15) !important;
+            background-color: #1a1a1a !important;
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.2) !important;
+            color: #fff !important;
         }
-        select option { background-color: #111; color: #fff; }
+        .form-control::placeholder { color: #777 !important; }
+        select option { background-color: #000; color: #fff; }
 
-        /* Cards 3D */
+        /* Modals - FORCE DARK */
+        .modal-content {
+            background-color: #0f0f0f !important;
+            border: 1px solid var(--glass-border) !important;
+            color: #fff !important;
+            box-shadow: 0 0 50px rgba(0,0,0,0.9);
+        }
+        .modal-header, .modal-footer { border-color: #333 !important; }
+        .btn-close { filter: invert(1) !important; opacity: 1 !important; }
+
+        /* --- UI COMPONENTS --- */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border); border-radius: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .glass-card:hover { transform: translateY(-4px); box-shadow: 0 0 25px rgba(0, 242, 255, 0.1); border-color: rgba(255, 255, 255, 0.3); }
+
+        .navbar-custom { background: rgba(5, 5, 5, 0.95); border-bottom: 1px solid var(--glass-border); z-index: 1000; }
+
+        /* LIVE TICKER (FIXED) */
+        .ticker-wrap {
+            width: 100%; overflow: hidden; background: #000; border-bottom: 1px solid rgba(255,255,255,0.1); height: 36px;
+            display: flex; align-items: center; position: relative; z-index: 990;
+        }
+        .ticker { display: inline-block; white-space: nowrap; animation: ticker 40s linear infinite; }
+        .ticker-item {
+            display: inline-block; padding: 0 2rem; font-size: 0.85rem;
+            font-family: 'Space Mono', monospace; color: var(--neon-green) !important;
+        }
+        @keyframes ticker { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
+
+        /* Buttons */
+        .btn-primary {
+            background: linear-gradient(90deg, var(--neon-blue), #0077ff) !important; border: none;
+            color: #000 !important; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn-primary:hover { box-shadow: 0 0 25px rgba(0, 242, 255, 0.6); transform: scale(1.02); }
+        .btn-outline-light { border-color: rgba(255,255,255,0.3); color: #ccc !important; }
+        .btn-outline-light:hover { background: rgba(255,255,255,0.1); color: #fff !important; }
+
+        /* Quick Transfers */
+        .quick-avatar-wrap { text-align: center; cursor: pointer; transition: transform 0.2s; min-width: 60px; position: relative; }
+        .quick-avatar-wrap:hover { transform: scale(1.1); }
+        .quick-avatar-img { width: 50px; height: 50px; border-radius: 50%; background: #222; border: 2px solid var(--neon-blue); padding: 2px; }
+        .quick-avatar-add { width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 2px dashed #666; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #aaa !important; transition: 0.3s; }
+        .quick-avatar-add:hover { border-color: var(--neon-blue); color: var(--neon-blue) !important; background: rgba(0, 242, 255, 0.1); }
+        .delete-quick { position: absolute; top: -2px; right: 0; font-size: 10px; color: white !important; background: #ff4444; border-radius: 50%; width: 18px; height: 18px; display: none; align-items: center; justify-content: center; border: 1px solid #fff; }
+        .quick-avatar-wrap:hover .delete-quick { display: flex; }
+
+        /* Avatar Main */
+        .cyber-avatar { width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--neon-blue); background: #000; cursor: pointer; transition: transform 0.3s; }
+        .cyber-avatar:hover { transform: scale(1.1) rotate(5deg); box-shadow: 0 0 15px var(--neon-blue); }
+
+        /* Table */
+        .table-custom { --bs-table-bg: transparent; --bs-table-color: #fff; }
+        .table-custom th { color: #aaa !important; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 15px; font-size: 0.75rem; text-transform: uppercase; }
+        .table-custom td { padding: 15px 0.5rem; vertical-align: middle; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .table-custom tbody tr:hover { background-color: rgba(255, 255, 255, 0.1); }
+
+        /* Matrix Rain Canvas */
+        #matrixCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -2; opacity: 0.07; pointer-events: none; }
+
+        /* Tier Badge */
+        .tier-badge {
+            background: #222; border: 1px solid rgba(255,255,255,0.2); color: #fff !important;
+            padding: 5px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .tier-elite { background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple)); border:none; box-shadow: 0 0 15px rgba(188, 19, 254, 0.5); }
+
+        /* Card 3D */
         .credit-card-wrap { perspective: 1000px; width: 100%; max-width: 360px; height: 220px; margin: 0 auto; cursor: pointer; }
-        .credit-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-style: preserve-3d; }
+        .credit-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.8s; transform-style: preserve-3d; }
         .credit-card-wrap.flipped .credit-card-inner { transform: rotateY(180deg); }
-        .credit-card-front, .credit-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); overflow: hidden; }
-        .credit-card-front {
-            background: linear-gradient(135deg, #121212 0%, #2a2a2a 100%);
-            padding: 25px; display: flex; flex-direction: column; justify-content: space-between;
-        }
-        .credit-card-front::after {
-            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%); pointer-events: none;
-        }
-        .credit-card-back { transform: rotateY(180deg); background: #1a1a1a; padding-top: 25px; }
+        .credit-card-front { background: linear-gradient(135deg, #111, #222); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); backface-visibility: hidden; display: flex; flex-direction: column; justify-content: space-between; }
+        .credit-card-back { background: #1a1a1a; padding-top: 25px; border-radius: 20px; backface-visibility: hidden; transform: rotateY(180deg); position: absolute; top:0; left:0; width:100%; height:100%; }
+        .card-bottom-row { margin-right: 60px; } /* Fix overlap */
+        .card-number { font-family: 'Space Mono', monospace; font-size: 1.4rem; letter-spacing: 2px; text-shadow: 0 0 8px rgba(255,255,255,0.4); text-align: left; margin-top: 10px; }
 
-        /* Modals & Dropdowns */
-        .modal-content { background-color: #111; border: 1px solid var(--glass-border); border-radius: 20px; box-shadow: 0 0 60px rgba(0,0,0,0.8); }
-        .modal-header, .modal-footer { border-color: rgba(255,255,255,0.08); }
-        .btn-close { filter: invert(1); opacity: 0.7; }
-
-        .dropdown-menu { background-color: rgba(20,20,20,0.98); border: 1px solid var(--glass-border); min-width: 300px; }
-        .dropdown-item { color: #ccc; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 10px 15px; white-space: normal; }
-        .dropdown-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
-
-        /* Custom Table Styling (Dark) */
-        .table-custom {
-            --bs-table-bg: transparent;
-            --bs-table-color: #e0e0e0;
-            --bs-table-border-color: rgba(255, 255, 255, 0.08);
-        }
-        .table-custom th {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-sec);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding-bottom: 15px;
-        }
-        .table-custom td {
-            padding: 15px 0.5rem;
-            vertical-align: middle;
-        }
-        .table-custom tbody tr {
-            transition: background 0.2s;
-        }
-        .table-custom tbody tr:hover {
-            background-color: rgba(255, 255, 255, 0.03);
-        }
-
-        /* Animations */
-        .animate-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(20px); }
+        /* Utils */
+        .money-font { font-family: 'Space Mono', monospace; letter-spacing: -0.5px; }
+        .blur-active .sensitive-data { filter: blur(8px); opacity: 0.6; }
+        .animate-up { animation: fadeInUp 0.6s ease-out forwards; opacity: 0; transform: translateY(20px); }
         @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
-        .delay-1 { animation-delay: 0.1s; } .delay-2 { animation-delay: 0.2s; }
+        .delay-1 { animation-delay: 0.1s; } .delay-2 { animation-delay: 0.2s; } .delay-3 { animation-delay: 0.3s; }
+        .pulse-dot { display: inline-block; width: 8px; height: 8px; background: #0aff60; border-radius: 50%; animation: pulse-green 2s infinite; box-shadow: 0 0 10px #0aff60; }
+        @keyframes pulse-green { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-        /* Pulse Animation for Live Status */
-        .pulse-dot { display: inline-block; width: 8px; height: 8px; background: red; border-radius: 50%; animation: pulse-red 2s infinite; }
-        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); } 70% { box-shadow: 0 0 0 6px rgba(255, 0, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); } }
+        /* Dropdown Fix */
+        .dropdown-menu { background-color: #1a1a1a !important; border: 1px solid #444 !important; }
+        .dropdown-item { color: #fff !important; border-bottom: 1px solid #333; }
+        .dropdown-item:hover { background-color: #333 !important; }
     </style>
 </head>
 <body id="appBody">
+
+<canvas id="matrixCanvas"></canvas>
 
 <nav class="navbar navbar-expand-lg navbar-dark navbar-custom px-4 py-3 sticky-top">
     <div class="container-fluid">
         <a class="navbar-brand fw-bold fs-4 d-flex align-items-center gap-2" href="#">
             <div class="d-flex align-items-center justify-content-center" style="width:32px; height:32px; background: var(--neon-blue); border-radius:8px; color:black;">
-                <i class="fas fa-bolt"></i>
+                <i class="fas fa-bolt text-dark"></i>
             </div>
-            <span style="letter-spacing: -0.5px;">CYBER<span style="color: var(--neon-blue)">BANK</span></span>
+            <span style="letter-spacing: -0.5px;">CYBER<span style="color: var(--neon-blue) !important">BANK</span></span>
         </a>
 
         <div class="d-flex align-items-center gap-3">
@@ -184,20 +180,17 @@
                 <i class="fas fa-headset me-2"></i>Help
             </button>
 
-            <!-- Balance & Privacy Toggle -->
-            <div class="d-none d-md-flex align-items-center px-3 py-2 rounded-pill" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
-                <small class="text-muted text-uppercase fw-bold me-2" style="font-size: 0.65rem;">Total</small>
-                <span class="fw-bold money-font sensitive-data" style="color: #fff;" id="navTotalBalance">--.--</span>
+            <div class="d-none d-md-flex align-items-center px-3 py-2 rounded-pill" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">
+                <span class="fw-bold money-font sensitive-data text-white" id="navTotalBalance">--.--</span>
                 <span class="ms-1 text-info small">BYN</span>
-                <button class="btn btn-link btn-sm text-muted ms-2 p-0" onclick="togglePrivacy()" title="Скрыть суммы">
+                <button class="btn btn-link btn-sm text-white ms-2 p-0 opacity-75 hover-opacity-100" onclick="togglePrivacy()" title="Скрыть суммы">
                     <i class="fas fa-eye" id="privacyIcon"></i>
                 </button>
             </div>
 
-            <!-- Notifications -->
             <div class="dropdown">
                 <button class="btn btn-dark rounded-circle position-relative border border-secondary d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;" data-bs-toggle="dropdown" onclick="markNotificationsRead()">
-                    <i class="far fa-bell text-light"></i>
+                    <i class="far fa-bell text-white"></i>
                     <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-dark rounded-circle d-none"></span>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end shadow-lg" id="notifList">
@@ -205,116 +198,125 @@
                 </ul>
             </div>
 
+            <img id="userAvatar" src="" class="cyber-avatar" title="Ваш профиль">
+
             <button onclick="logout()" class="btn btn-outline-danger btn-sm rounded-pill px-4 fw-bold">EXIT</button>
         </div>
     </div>
 </nav>
 
+<!-- LIVE TICKER -->
+<div class="ticker-wrap">
+    <div class="ticker">
+        <span class="ticker-item">USD/BYN: <span id="tick-usd" class="text-white">...</span></span>
+        <span class="ticker-item">EUR/BYN: <span id="tick-eur" class="text-white">...</span></span>
+        <span class="ticker-item">RUB/BYN: <span id="tick-rub" class="text-white">...</span></span>
+        <span class="ticker-item text-info">BTC: $98,150 ▲</span>
+        <span class="ticker-item text-info">ETH: $3,520 ▼</span>
+        <span class="ticker-item text-warning">MYBANK: ONLINE</span>
+    </div>
+</div>
+
 <div class="container py-5">
-    <!-- Header -->
     <div class="row mb-5 align-items-end animate-up">
         <div class="col-lg-8">
             <div class="d-flex align-items-center gap-3 mb-1">
                 <h1 class="fw-bold mb-0 display-5" id="greetingText">Dashboard</h1>
-                <span class="tier-badge" id="userTierBadge">Loading...</span>
+                <span class="tier-badge" id="userTierBadge">LOADING...</span>
             </div>
             <p class="text-muted fs-6 mb-0" id="currentDateDisplay">Загрузка даты...</p>
+            <div class="mt-2 small text-muted"><i class="fas fa-keyboard me-1"></i> Hotkeys: <span class="badge bg-secondary border border-light text-white">T</span> Transfer <span class="badge bg-secondary border border-light text-white">H</span> History</div>
         </div>
         <div class="col-lg-4 text-lg-end">
-            <button onclick="openTransferModal()" class="btn btn-primary btn-lg rounded-pill shadow-lg px-5 w-100 w-lg-auto" style="background: linear-gradient(90deg, #00f2ff, #00a8ff); color: #000; border:none;">
-                <i class="fas fa-paper-plane me-2"></i>Перевести
+            <button onclick="openTransferModal()" class="btn btn-lg rounded-pill shadow-lg px-5 w-100 w-lg-auto fw-bold btn-primary">
+                <i class="fas fa-paper-plane me-2"></i>ПЕРЕВОД
             </button>
         </div>
     </div>
 
-    <!-- Main Grid -->
     <div class="row g-4 mb-5">
         <!-- Cards List -->
         <div class="col-lg-8" id="cardsList">
             <div class="glass-card p-5 text-center text-muted">
                 <div class="spinner-border text-info mb-3" role="status"></div>
-                <div>Синхронизация данных...</div>
+                <div>Загрузка данных...</div>
             </div>
         </div>
 
         <!-- Sidebar -->
         <div class="col-lg-4">
 
-            <!-- Analytics (Doughnut) -->
-            <div class="glass-card p-4 mb-4 animate-up delay-1 js-tilt">
-                <h6 class="text-uppercase text-muted mb-3 fw-bold small"><i class="fas fa-chart-pie me-2"></i>Денежный поток</h6>
-                <div style="height: 200px; position: relative;">
+            <!-- Quick Transfer (Backend) -->
+            <div class="glass-card p-4 mb-4 animate-up delay-1">
+                <h6 class="text-uppercase text-muted mb-3 fw-bold small"><i class="fas fa-bolt me-2 text-warning"></i>Быстрый перевод</h6>
+                <div class="d-flex gap-3 overflow-x-auto pb-2 align-items-start" id="quickTransferList">
+                    <div class="text-center text-muted w-100 py-2 small">Загрузка...</div>
+                </div>
+            </div>
+
+            <!-- Spending Limit -->
+            <div class="glass-card p-4 mb-4 animate-up delay-1">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="text-uppercase text-muted mb-0 fw-bold small"><i class="fas fa-wallet me-2"></i>Лимит (Мес.)</h6>
+                    <span class="badge bg-dark border border-secondary sensitive-data text-white" id="spendingAmount">0 BYN</span>
+                </div>
+                <div class="progress mb-2" style="height: 6px; background: rgba(255,255,255,0.1);">
+                    <div class="progress-bar bg-info" id="spendingBar" style="width: 0%;"></div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted" style="font-size: 0.7rem;" id="spendingPercent">0%</small>
+                    <div class="d-flex align-items-center">
+                        <small class="text-muted sensitive-data me-2" style="font-size: 0.7rem;">Макс: <span id="limitDisplay">...</span> BYN</small>
+                        <button class="btn btn-link btn-sm p-0 text-info" onclick="changeLimit()" title="Изменить">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics -->
+            <div class="glass-card p-4 mb-4 animate-up delay-2 js-tilt">
+                <h6 class="text-uppercase text-muted mb-3 fw-bold small"><i class="fas fa-chart-pie me-2"></i>Статистика</h6>
+                <div style="height: 180px; position: relative;">
                     <canvas id="financeChart"></canvas>
                     <div id="chartCenterText" class="d-none" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none;">
                         <small class="text-muted text-uppercase" style="font-size: 0.6rem;">Статус</small>
                         <div class="fw-bold text-white">Active</div>
                     </div>
                     <div id="chartNoData" class="d-none" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; width: 100%;">
-                        <i class="fas fa-ban fa-2x mb-2 text-muted opacity-25"></i>
-                        <div class="small text-muted">Нет операций</div>
+                        <i class="fas fa-ban fa-2x mb-2 text-muted opacity-50"></i>
+                        <div class="small text-muted">Нет данных</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Spending Limit Widget -->
-            <div class="glass-card p-4 mb-4 animate-up delay-1">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="text-uppercase text-muted mb-0 fw-bold small"><i class="fas fa-wallet me-2"></i>Траты за месяц</h6>
-                    <span class="badge bg-dark border border-secondary sensitive-data" id="spendingAmount">0 BYN</span>
-                </div>
-                <div class="progress-thin mb-2">
-                    <div class="progress-bar-glow" id="spendingBar" style="width: 0%;"></div>
-                </div>
-                <div class="d-flex justify-content-between align-items-center">
-                    <small class="text-muted" style="font-size: 0.7rem;" id="spendingPercent">0% использовано</small>
-                    <div class="d-flex align-items-center">
-                        <small class="text-muted sensitive-data me-2" style="font-size: 0.7rem;">Лимит: <span id="limitDisplay">5000</span> BYN</small>
-                        <button class="btn btn-link btn-sm p-0 text-muted" onclick="changeLimit()" title="Изменить лимит">
-                            <i class="fas fa-pencil-alt" style="font-size: 0.7rem;"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Rates Widget -->
-            <div class="glass-card p-4 animate-up delay-2">
+            <!-- Rates -->
+            <div class="glass-card p-4 animate-up delay-3">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="text-uppercase text-muted mb-0 fw-bold small"><i class="fas fa-globe me-2"></i>Рынок (NBRB)</h6>
                     <div class="pulse-dot"></div>
                 </div>
-
-                <div class="d-flex justify-content-between mb-2 p-2 rounded" style="background: rgba(255,255,255,0.03);">
-                    <div class="d-flex align-items-center gap-2"><img src="https://flagcdn.com/w20/us.png" class="rounded-circle" width="20"><span class="fw-bold">USD</span></div>
+                <div class="d-flex justify-content-between mb-2 p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                    <div class="d-flex align-items-center gap-2"><img src="https://flagcdn.com/w20/us.png" class="rounded-circle" width="20"><span class="fw-bold text-white">USD</span></div>
                     <span class="money-font text-info" id="rate-usd">...</span>
                 </div>
-                <div class="d-flex justify-content-between mb-2 p-2 rounded" style="background: rgba(255,255,255,0.03);">
-                    <div class="d-flex align-items-center gap-2"><img src="https://flagcdn.com/w20/eu.png" class="rounded-circle" width="20"><span class="fw-bold">EUR</span></div>
+                <div class="d-flex justify-content-between mb-2 p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                    <div class="d-flex align-items-center gap-2"><img src="https://flagcdn.com/w20/eu.png" class="rounded-circle" width="20"><span class="fw-bold text-white">EUR</span></div>
                     <span class="money-font text-info" id="rate-eur">...</span>
                 </div>
-                <div class="d-flex justify-content-between p-2 rounded" style="background: rgba(255,255,255,0.03);">
-                    <div class="d-flex align-items-center gap-2"><img src="https://flagcdn.com/w20/ru.png" class="rounded-circle" width="20"><span class="fw-bold">RUB</span></div>
+                <div class="d-flex justify-content-between p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                    <div class="d-flex align-items-center gap-2"><img src="https://flagcdn.com/w20/ru.png" class="rounded-circle" width="20"><span class="fw-bold text-white">RUB</span></div>
                     <span class="money-font text-info" id="rate-rub">...</span>
-                </div>
-
-                <!-- Simple Converter -->
-                <div class="mt-3 pt-3 border-top border-secondary">
-                    <div class="input-group input-group-sm">
-                        <input type="number" id="convAmount" class="form-control" placeholder="100" value="100" oninput="calculateConversion()">
-                        <select id="convCurrency" class="form-select" onchange="calculateConversion()" style="max-width: 80px;">
-                            <option value="USD">USD</option><option value="EUR">EUR</option><option value="RUB">RUB</option>
-                        </select>
-                    </div>
-                    <div class="text-end mt-2"><small class="text-muted">≈ <span id="convResult" class="text-white fw-bold">...</span> BYN</small></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- History Table -->
-    <div class="row animate-up delay-2">
+    <!-- History -->
+    <div class="row animate-up delay-3">
         <div class="col-12">
             <div class="glass-card p-4">
-                <h5 class="mb-4 fw-bold">Последние транзакции</h5>
+                <h5 class="mb-4 fw-bold text-white">Последние транзакции</h5>
                 <div class="table-responsive">
                     <table class="table table-custom align-middle mb-0">
                         <thead>
@@ -334,94 +336,10 @@
 </div>
 
 <!-- Modal: View Card -->
-<div class="modal fade" id="viewCardModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-body text-center p-4">
-                <div class="credit-card-wrap" onclick="this.classList.toggle('flipped')">
-                    <div class="credit-card-inner">
-                        <div class="credit-card-front">
-                            <div class="d-flex justify-content-between align-items-center"><div class="card-chip" style="width:45px;height:35px;background:linear-gradient(135deg,#d4af37,#f9d976);border-radius:6px;"></div><i class="fas fa-wifi fa-lg opacity-75"></i></div>
-                            <div class="card-number mt-3 sensitive-data" id="modalCardNumber" onclick="copyCardNumber(event)" style="cursor:copy">#### #### #### ####</div>
-                            <div class="d-flex justify-content-between align-items-end mt-auto">
-                                <div class="text-start"><div class="small opacity-50" style="font-size:0.6rem;">HOLDER</div><div class="card-holder text-uppercase" id="modalCardHolder">NAME</div></div>
-                                <div class="text-end"><div class="small opacity-50" style="font-size:0.6rem;">EXPIRES</div><div class="card-holder sensitive-data" id="modalCardExpiry">MM/YY</div></div>
-                            </div>
-                            <img id="modalCardLogo" src="" style="position:absolute;bottom:20px;right:20px;width:50px;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.5));">
-                        </div>
-                        <div class="credit-card-back">
-                            <div style="background:#000;height:45px;width:100%;margin-top:20px;"></div>
-                            <div class="d-flex justify-content-end px-4 mt-3"><div class="bg-white text-dark d-flex align-items-center justify-content-end px-2 sensitive-data" style="width:60px;height:30px;font-family:'Space Mono';font-style:italic;" id="modalCardCvv">000</div></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <h2 class="fw-bold text-info money-font mb-1 sensitive-data" id="modalCardBalance">0.00 BYN</h2>
-                    <div class="mb-4 small text-muted" id="modalCardStatus">ACTIVE</div>
-                    <div id="modalActions" class="d-grid gap-2 col-8 mx-auto"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal: Transfer -->
-<div class="modal fade" id="transferModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">Перевод средств</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4">
-                <form id="transferForm">
-                    <div class="mb-3"><label class="small text-muted mb-1">С карты</label><select id="transferFromCard" class="form-select"></select></div>
-                    <div class="d-flex bg-dark rounded p-1 mb-3 border border-secondary">
-                        <button type="button" class="btn btn-sm flex-fill text-white" id="btnTypeOthers" onclick="toggleTransferType('others')" style="background: rgba(255,255,255,0.1)">Клиенту</button>
-                        <button type="button" class="btn btn-sm flex-fill text-muted" id="btnTypeSelf" onclick="toggleTransferType('self')">Свои счета</button>
-                    </div>
-                    <div class="mb-3">
-                        <label class="small text-muted mb-1">Получатель</label>
-                        <div id="targetInputContainer"><input type="text" id="transferToCardInput" class="form-control money-font" placeholder="0000 0000 0000 0000" maxlength="19"></div>
-                        <div id="targetSelectContainer" class="d-none"><select id="transferToCardSelect" class="form-select"></select></div>
-                    </div>
-                    <div class="mb-4"><label class="small text-muted mb-1">Сумма (BYN)</label><input type="number" id="transferAmount" class="form-control fs-4 fw-bold text-info money-font" placeholder="0.00"></div>
-                    <button type="button" class="btn btn-primary w-100 rounded-pill py-2" onclick="submitTransfer()">Отправить</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal: Support -->
-<div class="modal fade" id="supportModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">Поддержка</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-0">
-                <div class="row g-0">
-                    <div class="col-md-5 border-end border-secondary" style="height: 400px; overflow-y: auto;">
-                        <div class="p-3 border-bottom border-secondary bg-dark sticky-top d-flex justify-content-between"><span class="small fw-bold text-muted">ИСТОРИЯ</span><button class="btn btn-sm btn-link text-info p-0" onclick="loadMyTickets()"><i class="fas fa-sync"></i></button></div>
-                        <div id="ticketsList" class="list-group list-group-flush"></div>
-                    </div>
-                    <div class="col-md-7 p-4">
-                        <h6 class="fw-bold mb-3">Новый вопрос</h6>
-                        <input type="text" id="ticketSubject" class="form-control mb-3" placeholder="Тема">
-                        <textarea id="ticketDesc" class="form-control mb-3" rows="6" placeholder="Описание проблемы..."></textarea>
-                        <div class="text-end"><button type="button" class="btn btn-primary px-4 rounded-pill" onclick="createTicket()">Создать</button></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="copyToast" class="position-fixed bottom-0 start-50 translate-middle-x mb-4 bg-white text-dark px-4 py-2 rounded-pill fw-bold opacity-0 shadow-lg" style="z-index: 9999; transition: opacity 0.3s; border: 1px solid var(--neon-blue);">
-    <i class="fas fa-check-circle text-success me-2"></i>Скопировано в буфер
-</div>
+<div class="modal fade" id="viewCardModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-body text-center p-4"><div class="credit-card-wrap" onclick="this.classList.toggle('flipped')"><div class="credit-card-inner"><div class="credit-card-front"><div class="d-flex justify-content-between align-items-center"><div class="card-chip" style="width:45px;height:35px;background:linear-gradient(135deg,#d4af37,#f9d976);border-radius:6px;box-shadow:inset 0 1px 3px rgba(0,0,0,0.3);"></div><i class="fas fa-wifi fa-lg opacity-75"></i></div><div class="card-number mt-3 sensitive-data" id="modalCardNumber" onclick="copyCardNumber(event)" style="cursor:copy">####</div><div class="d-flex justify-content-between align-items-end mt-auto card-bottom-row"><div class="text-start"><div class="small opacity-50" style="font-size:0.6rem;">HOLDER</div><div class="card-holder text-uppercase" id="modalCardHolder">NAME</div></div><div class="text-end"><div class="small opacity-50" style="font-size:0.6rem;">EXPIRES</div><div class="card-holder sensitive-data" id="modalCardExpiry">MM/YY</div></div></div><img id="modalCardLogo" src="" style="position:absolute;bottom:20px;right:20px;width:50px;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.5));"></div><div class="credit-card-back"><div style="background:#000;height:45px;width:100%;margin-top:20px;"></div><div class="d-flex justify-content-end px-4 mt-3"><div class="bg-white text-dark d-flex align-items-center justify-content-end px-2 sensitive-data" style="width:60px;height:30px;font-family:'Space Mono';font-style:italic;" id="modalCardCvv">000</div></div></div></div></div><div class="mt-4"><h2 class="fw-bold text-info money-font mb-1 sensitive-data" id="modalCardBalance">0.00 BYN</h2><div class="mb-4 small text-muted" id="modalCardStatus">ACTIVE</div><div id="modalActions" class="d-grid gap-2 col-8 mx-auto"></div></div></div></div></div></div>
+<div class="modal fade" id="transferModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title fw-bold">Перевод средств</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body p-4"><form id="transferForm"><div class="mb-3"><label class="small text-muted mb-1">С карты</label><select id="transferFromCard" class="form-select"></select></div><div class="d-flex bg-dark rounded p-1 mb-3 border border-secondary"><button type="button" class="btn btn-sm flex-fill text-white" id="btnTypeOthers" onclick="toggleTransferType('others')" style="background: rgba(255,255,255,0.1)">Клиенту</button><button type="button" class="btn btn-sm flex-fill text-muted" id="btnTypeSelf" onclick="toggleTransferType('self')">Свои счета</button></div><div class="mb-3"><label class="small text-muted mb-1">Получатель</label><div id="targetInputContainer"><input type="text" id="transferToCardInput" class="form-control money-font" placeholder="0000 0000 0000 0000" maxlength="19"></div><div id="targetSelectContainer" class="d-none"><select id="transferToCardSelect" class="form-select"></select></div></div><div class="mb-4"><label class="small text-muted mb-1">Сумма (BYN)</label><input type="number" id="transferAmount" class="form-control fs-4 fw-bold text-info money-font" placeholder="0.00"></div><button type="button" class="btn btn-primary w-100 rounded-pill py-2" onclick="submitTransfer()">Отправить</button></form></div></div></div></div>
+<div class="modal fade" id="supportModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title fw-bold">Поддержка</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body p-0"><div class="row g-0"><div class="col-md-5 border-end border-secondary" style="height: 400px; overflow-y: auto;"><div class="p-3 border-bottom border-secondary bg-dark sticky-top d-flex justify-content-between"><span class="small fw-bold text-muted">ИСТОРИЯ</span><button class="btn btn-sm btn-link text-info p-0" onclick="loadMyTickets()"><i class="fas fa-sync"></i></button></div><div id="ticketsList" class="list-group list-group-flush"></div></div><div class="col-md-7 p-4"><h6 class="fw-bold mb-3">Новый вопрос</h6><input type="text" id="ticketSubject" class="form-control mb-3" placeholder="Тема"><textarea id="ticketDesc" class="form-control mb-3" rows="6" placeholder="Описание проблемы..."></textarea><div class="text-end"><button type="button" class="btn btn-primary px-4 rounded-pill" onclick="createTicket()">Создать</button></div></div></div></div></div></div></div>
+<div id="copyToast" class="position-fixed bottom-0 start-50 translate-middle-x mb-4 bg-white text-dark px-4 py-2 rounded-pill fw-bold opacity-0 shadow-lg" style="z-index: 9999; transition: opacity 0.3s; border: 1px solid var(--neon-blue);"><i class="fas fa-check-circle text-success me-2"></i>Скопировано в буфер</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 
@@ -429,10 +347,7 @@
     let viewModal, transferModal, supportModal, financeChart;
     const VISA_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/1200px-Visa_Inc._logo.svg.png";
     const MC_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1280px-Mastercard-logo.svg.png";
-    let myCards = [], allTransactions = [], transferMode = 'others';
-    let currentRates = { USD: 0, EUR: 0, RUB: 0 };
-    let isPrivacyOn = false;
-    let currentExpenses = 0; // For limit tracking
+    let myCards = [], allTransactions = [], transferMode = 'others', currentRates = { USD: 0, EUR: 0, RUB: 0 }, isPrivacyOn = false, currentExpenses = 0, monthlyLimit = 5000;
 
     document.addEventListener('DOMContentLoaded', () => {
         if (typeof bootstrap === 'undefined') return;
@@ -441,50 +356,135 @@
         supportModal = new bootstrap.Modal(document.getElementById('supportModal'));
         try { VanillaTilt.init(document.querySelectorAll(".js-tilt")); } catch(e) {}
 
+        // Hotkeys
+        document.addEventListener('keydown', (e) => {
+            if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if(e.key.toLowerCase() === 't') openTransferModal();
+            if(e.key.toLowerCase() === 'h') { document.getElementById('historyList').scrollIntoView({behavior: 'smooth'}); }
+        });
+
+        initMatrix();
         updateGreeting();
-        loadData(); loadNotifications(); fetchNBRBRates();
+        loadProfileAndData();
+        loadNotifications();
+        loadQuickTransfers(); // Load from BACKEND
+        fetchNBRBRates();
     });
 
-    // --- NEW: Custom Limit Feature ---
-    function changeLimit() {
-        const currentLimit = localStorage.getItem('userSpendingLimit') || 5000;
-        const newLimit = prompt("Установите лимит трат на месяц (BYN):", currentLimit);
-
-        if (newLimit !== null && newLimit.trim() !== "") {
-            const parsed = parseFloat(newLimit);
-            if (!isNaN(parsed) && parsed > 0) {
-                localStorage.setItem('userSpendingLimit', parsed);
-                updateSpendingWidget(currentExpenses); // Re-render widget with new limit
+    // --- QUICK TRANSFER LOGIC (BACKEND INTEGRATION) ---
+    async function loadQuickTransfers() {
+        const list = document.getElementById('quickTransferList');
+        try {
+            const res = await fetch('/api/user/quick-transfers');
+            if(res.ok) {
+                const data = await res.json();
+                renderQuickTransfers(data);
             } else {
-                alert("Пожалуйста, введите корректное число.");
+                renderQuickTransfers([]);
             }
+        } catch(e) { console.error("QT Error", e); }
+    }
+
+    function renderQuickTransfers(transfers) {
+        const list = document.getElementById('quickTransferList');
+        list.innerHTML = '';
+
+        transfers.forEach(qt => {
+            const avatarUrl = `https://robohash.org/${qt.name}?set=set1&bgset=bg2`;
+            const item = document.createElement('div');
+            item.className = 'quick-avatar-wrap';
+            item.innerHTML = `
+                <img src="${avatarUrl}" class="quick-avatar-img">
+                <span class="quick-avatar-name">${qt.name}</span>
+                <i class="fas fa-times delete-quick" onclick="deleteQuickTransfer(${qt.id}, event)"></i>
+            `;
+            item.onclick = (e) => {
+                if(!e.target.classList.contains('delete-quick')) {
+                    openQuickTransfer(qt.cardNumber);
+                }
+            };
+            list.appendChild(item);
+        });
+
+        // Add Button
+        const addButton = document.createElement('div');
+        addButton.className = 'quick-avatar-wrap';
+        addButton.innerHTML = `<div class="quick-avatar-add"><i class="fas fa-plus"></i></div><span class="quick-avatar-name" style="color:var(--neon-blue)">New</span>`;
+        addButton.onclick = addQuickTransfer;
+        list.appendChild(addButton);
+    }
+
+    async function addQuickTransfer() {
+        const name = prompt("Имя контакта:");
+        if (!name) return;
+        const card = prompt("Номер карты:");
+        if (!card || card.length < 16) { alert("Некорректный номер"); return; }
+
+        try {
+            const res = await fetch('/api/user/quick-transfers', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: name, cardNumber: card})
+            });
+            if(res.ok) { loadQuickTransfers(); } else { alert("Ошибка сохранения"); }
+        } catch(e) { alert("Ошибка сети"); }
+    }
+
+    async function deleteQuickTransfer(id, e) {
+        e.stopPropagation();
+        if(confirm("Удалить контакт?")) {
+            try {
+                await fetch(`/api/user/quick-transfers/${id}`, { method: 'DELETE' });
+                loadQuickTransfers();
+            } catch(e) { alert("Ошибка удаления"); }
         }
     }
 
-    // --- Privacy Mode ---
+    function openQuickTransfer(cardNumber) {
+        openTransferModal();
+        toggleTransferType('others');
+        document.getElementById('transferToCardInput').value = cardNumber;
+    }
+
+    // --- MAIN LOGIC ---
+    async function loadProfileAndData() {
+        try {
+            const profileRes = await fetch('/api/user/profile');
+            if (profileRes.ok) {
+                const profile = await profileRes.json();
+                document.getElementById('userAvatar').src = profile.avatarUrl;
+                monthlyLimit = profile.monthlyLimit || 5000;
+                document.getElementById('limitDisplay').innerText = monthlyLimit;
+            }
+            loadData();
+        } catch(e) { console.error("Profile load error", e); }
+    }
+
+    async function changeLimit() {
+        const newLimit = prompt("Установите лимит трат на месяц (BYN):", monthlyLimit);
+        if (newLimit !== null && newLimit.trim() !== "") {
+            const parsed = parseFloat(newLimit);
+            if (!isNaN(parsed) && parsed >= 0) {
+                try {
+                    const res = await fetch('/api/user/profile/limit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ limit: parsed }) });
+                    if (res.ok) { monthlyLimit = parsed; document.getElementById('limitDisplay').innerText = monthlyLimit; updateSpendingWidget(currentExpenses); alert("Лимит обновлен!"); }
+                    else { alert("Ошибка сохранения"); }
+                } catch(e) { alert("Ошибка сети"); }
+            } else { alert("Введите корректное число."); }
+        }
+    }
+
     function togglePrivacy() {
         isPrivacyOn = !isPrivacyOn;
         const body = document.body;
         const icon = document.getElementById('privacyIcon');
-
-        if (isPrivacyOn) {
-            body.classList.add('blur-active');
-            icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash');
-        } else {
-            body.classList.remove('blur-active');
-            icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye');
-        }
+        if (isPrivacyOn) { body.classList.add('blur-active'); icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
+        else { body.classList.remove('blur-active'); icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
     }
 
-    // --- User Tier & Greeting & Date ---
     function updateGreeting() {
-        const now = new Date();
-        const h = now.getHours();
-        const t = document.getElementById('greetingText');
-
+        const now = new Date(); const h = now.getHours(); const t = document.getElementById('greetingText');
         if(h<6) t.innerText='Доброй ночи'; else if(h<12) t.innerText='Доброе утро'; else if(h<18) t.innerText='Добрый день'; else t.innerText='Добрый вечер';
-
-        // Add Date Display
         const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         document.getElementById('currentDateDisplay').innerText = now.toLocaleDateString('ru-RU', dateOptions);
     }
@@ -498,17 +498,14 @@
         else { badge.innerText = 'STANDARD'; }
     }
 
-    // --- DATA LOADING ---
     async function loadData() {
         const container = document.getElementById('cardsList');
         try {
             const balRes = await fetch('/api/user/cards/balance');
             if (balRes.status === 401 || balRes.status === 403) { window.location.href = '/login'; return; }
             const bal = await balRes.json();
-            const totalBal = bal || 0;
-
-            animateValue("navTotalBalance", 0, totalBal, 1000);
-            updateUserTier(totalBal);
+            animateValue("navTotalBalance", 0, bal || 0, 1000);
+            updateUserTier(bal || 0);
 
             const cardRes = await fetch('/api/user/cards?page=0&size=50');
             const data = await cardRes.json();
@@ -563,59 +560,44 @@
                 const l = await r.json();
                 allTransactions = [];
                 let inc = 0, exp = 0;
-
                 l.forEach(t => {
                     const isMineSender = myCards.some(c => c.cardNumber.endsWith(t.fromCardNumber.slice(-4)));
                     const isMineReceiver = myCards.some(c => c.cardNumber.endsWith(t.toCardNumber.slice(-4)));
-
                     if (isMineSender && isMineReceiver) {
                         allTransactions.push({type: 'self', desc: 'Между счетами', date: t.transferDate, amount: t.amount});
                     } else if (isMineSender) {
-                        exp += t.amount;
-                        allTransactions.push({type: 'out', desc: 'Перевод клиенту', date: t.transferDate, amount: t.amount});
+                        exp += t.amount; allTransactions.push({type: 'out', desc: 'Перевод клиенту', date: t.transferDate, amount: t.amount});
                     } else if (isMineReceiver) {
-                        inc += t.amount;
-                        allTransactions.push({type: 'in', desc: 'Входящий перевод', date: t.transferDate, amount: t.amount});
+                        inc += t.amount; allTransactions.push({type: 'in', desc: 'Входящий перевод', date: t.transferDate, amount: t.amount});
                     }
                 });
-
-                currentExpenses = exp; // Store global for limit widget
+                currentExpenses = exp;
                 allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
-                renderHistory(allTransactions);
-                renderChart(inc, exp);
-                updateSpendingWidget(exp);
+                renderHistory(allTransactions); renderChart(inc, exp); updateSpendingWidget(exp);
             } else { tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Ошибка</td></tr>'; }
         } catch(e) { tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Ошибка</td></tr>'; }
     }
 
-    // --- Spending Widget with Custom Limit ---
     function updateSpendingWidget(expenses) {
-        const limit = parseFloat(localStorage.getItem('userSpendingLimit')) || 5000;
+        const limit = parseFloat(monthlyLimit) || 5000;
         const percent = Math.min((expenses / limit) * 100, 100);
-
         document.getElementById('spendingAmount').innerText = expenses.toFixed(2) + ' BYN';
-        document.getElementById('limitDisplay').innerText = limit;
-        document.getElementById('spendingPercent').innerText = percent.toFixed(0) + '% использовано';
-
+        document.getElementById('spendingPercent').innerText = percent.toFixed(0) + '%';
         const bar = document.getElementById('spendingBar');
         bar.style.width = percent + '%';
-
-        // Color logic
-        if (percent > 90) bar.style.background = '#ef4444'; // Red
-        else if (percent > 75) bar.style.background = '#eab308'; // Yellow
-        else bar.style.background = 'var(--neon-blue)'; // Default
+        if (percent > 90) bar.className = 'progress-bar bg-danger';
+        else if (percent > 75) bar.className = 'progress-bar bg-warning';
+        else bar.className = 'progress-bar bg-info';
     }
 
     function renderHistory(l) {
-        const t = document.getElementById('historyList');
-        t.innerHTML = '';
+        const t = document.getElementById('historyList'); t.innerHTML = '';
         if (l.length === 0) { t.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Операций не найдено</td></tr>'; return; }
         l.slice(0, 10).forEach(x => {
             let c, s, icon;
             if (x.type === 'out') { c = 'text-danger'; s = '-'; icon = '<i class="fas fa-arrow-up text-danger"></i>'; }
             else if (x.type === 'in') { c = 'text-info'; s = '+'; icon = '<i class="fas fa-arrow-down text-info"></i>'; }
             else { c = 'text-secondary'; s = ''; icon = '<i class="fas fa-exchange-alt text-secondary"></i>'; }
-
             t.innerHTML += `<tr><td class="ps-3">${icon}</td><td>${x.desc}</td><td class="text-muted small">${new Date(x.date).toLocaleDateString()}</td><td class="text-end pe-3 fw-bold money-font sensitive-data ${c}">${s}${x.amount.toFixed(2)}</td></tr>`;
         });
     }
@@ -625,80 +607,23 @@
         const noData = document.getElementById('chartNoData');
         const centerText = document.getElementById('chartCenterText');
         if(financeChart) financeChart.destroy();
-
-        if(inc === 0 && exp === 0) {
-            ctxCanvas.classList.add('d-none'); centerText.classList.add('d-none'); noData.classList.remove('d-none'); return;
-        }
+        if(inc === 0 && exp === 0) { ctxCanvas.classList.add('d-none'); centerText.classList.add('d-none'); noData.classList.remove('d-none'); return; }
         ctxCanvas.classList.remove('d-none'); centerText.classList.remove('d-none'); noData.classList.add('d-none');
-
         const ctx = ctxCanvas.getContext('2d');
-        financeChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: { labels: ['Доходы', 'Расходы'], datasets: [{ data: [inc, exp], backgroundColor: ['#0aff60', '#ff3366'], borderWidth: 0, borderRadius: 20, spacing: 5 }] },
-            options: { responsive: true, maintainAspectRatio: false, cutout: '85%', plugins: { legend: { display: false } }, animation: { animateScale: true } }
-        });
+        financeChart = new Chart(ctx, { type: 'doughnut', data: { labels: ['Доходы', 'Расходы'], datasets: [{ data: [inc, exp], backgroundColor: ['#0aff60', '#ff3366'], borderWidth: 0, borderRadius: 20, spacing: 5 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '85%', plugins: { legend: { display: false } }, animation: { animateScale: true } } });
     }
 
-    // --- CURRENCY CONVERTER ---
-    async function fetchNBRBRates() {
-        try {
-            const r = await fetch('https://api.nbrb.by/exrates/rates?periodicity=0');
-            const data = await r.json();
-            const usd = data.find(c => c.Cur_Abbreviation === 'USD');
-            const eur = data.find(c => c.Cur_Abbreviation === 'EUR');
-            const rub = data.find(c => c.Cur_Abbreviation === 'RUB');
+    // Matrix Rain
+    function initMatrix() { const c=document.getElementById('matrixCanvas'),x=c.getContext('2d'); c.width=window.innerWidth;c.height=window.innerHeight; const l="01", s=14, cl=c.width/s, d=[]; for(let i=0;i<cl;i++)d[i]=1; setInterval(()=>{x.fillStyle='rgba(0,0,0,0.05)';x.fillRect(0,0,c.width,c.height);x.fillStyle='#0F0';x.font=s+'px monospace';for(let i=0;i<d.length;i++){x.fillText(l[Math.floor(Math.random()*2)],i*s,d[i]*s);if(d[i]*s>c.height&&Math.random()>0.975)d[i]=0;d[i]++;}},50); }
 
-            if(usd) { document.getElementById('rate-usd').innerText = usd.Cur_OfficialRate.toFixed(4); currentRates.USD = usd.Cur_OfficialRate; }
-            if(eur) { document.getElementById('rate-eur').innerText = eur.Cur_OfficialRate.toFixed(4); currentRates.EUR = eur.Cur_OfficialRate; }
-            if(rub) { document.getElementById('rate-rub').innerText = rub.Cur_OfficialRate.toFixed(4); currentRates.RUB = rub.Cur_OfficialRate / 100; }
-            calculateConversion();
-        } catch(e){}
-    }
-    function calculateConversion() {
-        const amt = parseFloat(document.getElementById('convAmount').value) || 0;
-        const curr = document.getElementById('convCurrency').value;
-        const rate = currentRates[curr] || 0;
-        document.getElementById('convResult').innerText = (amt * rate).toFixed(2);
-    }
-
-    // --- ACTIONS ---
-    async function createTicket() {
-        const s = document.getElementById('ticketSubject').value;
-        const d = document.getElementById('ticketDesc').value;
-        if(!s || !d) { alert('Заполните все поля!'); return; }
-        try {
-            const res = await fetch('/api/user/tickets', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({subject: s, description: d}) });
-            if (res.ok) { document.getElementById('createTicketForm').reset(); loadMyTickets(); alert('Тикет создан'); }
-        } catch(e) { alert('Ошибка сети'); }
-    }
-
-    function openTransferModal() {
-        const s=document.getElementById('transferFromCard'); s.innerHTML='';
-        const a=myCards.filter(c=>c.cardStatus==='ACTIVE'); if(a.length===0)return;
-        a.forEach(c=>s.innerHTML+=`<option value="${c.id}">**** ${c.cardNumber.slice(-4)} (${c.balance} BYN)</option>`);
-        toggleTransferType('others'); document.getElementById('transferAmount').value=''; document.getElementById('transferToCardInput').value=''; transferModal.show();
-    }
-
-    function toggleTransferType(t) {
-        transferMode=t; const bo=document.getElementById('btnTypeOthers'), bs=document.getElementById('btnTypeSelf'), ic=document.getElementById('targetInputContainer'), sc=document.getElementById('targetSelectContainer');
-        if(t==='others'){ bo.style.background='rgba(255,255,255,0.1)';bo.classList.replace('text-muted','text-white'); bs.style.background='transparent';bs.classList.replace('text-white','text-muted'); ic.classList.remove('d-none'); sc.classList.add('d-none'); }
-        else{ bs.style.background='rgba(255,255,255,0.1)';bs.classList.replace('text-muted','text-white'); bo.style.background='transparent';bo.classList.replace('text-white','text-muted'); ic.classList.add('d-none'); sc.classList.remove('d-none'); updateMyCardsTarget(); }
-    }
-
+    // Helpers
+    async function fetchNBRBRates() { try{ const r=await fetch('https://api.nbrb.by/exrates/rates?periodicity=0'); const d=await r.json(); const u=d.find(c=>c.Cur_Abbreviation==='USD'); const e=d.find(c=>c.Cur_Abbreviation==='EUR'); const ru=d.find(c=>c.Cur_Abbreviation==='RUB'); if(u) { document.getElementById('rate-usd').innerText=u.Cur_OfficialRate.toFixed(4); document.getElementById('tick-usd').innerText=u.Cur_OfficialRate.toFixed(4); } if(e) { document.getElementById('rate-eur').innerText=e.Cur_OfficialRate.toFixed(4); document.getElementById('tick-eur').innerText=e.Cur_OfficialRate.toFixed(4); } if(ru) { document.getElementById('rate-rub').innerText=ru.Cur_OfficialRate.toFixed(4); document.getElementById('tick-rub').innerText=ru.Cur_OfficialRate.toFixed(4); } }catch(e){ document.getElementById('rate-usd').innerText="N/A"; } }
+    async function createTicket() { const s = document.getElementById('ticketSubject').value; const d = document.getElementById('ticketDesc').value; if(!s || !d) { alert('Заполните поля!'); return; } try { const res = await fetch('/api/user/tickets', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({subject: s, description: d}) }); if (res.ok) { document.getElementById('createTicketForm').reset(); loadMyTickets(); alert('Тикет создан'); } } catch(e) { alert('Ошибка сети'); } }
+    function openTransferModal() { const s=document.getElementById('transferFromCard'); s.innerHTML=''; const a=myCards.filter(c=>c.cardStatus==='ACTIVE'); if(a.length===0) {alert("Нет активных карт"); return;} a.forEach(c=>s.innerHTML+=`<option value="${c.id}">**** ${c.cardNumber.slice(-4)} (${c.balance} BYN)</option>`); toggleTransferType('others'); document.getElementById('transferAmount').value=''; document.getElementById('transferToCardInput').value=''; transferModal.show(); }
+    function toggleTransferType(t) { transferMode=t; const bo=document.getElementById('btnTypeOthers'), bs=document.getElementById('btnTypeSelf'), ic=document.getElementById('targetInputContainer'), sc=document.getElementById('targetSelectContainer'); if(t==='others'){ bo.style.background='rgba(255,255,255,0.1)';bo.classList.replace('text-muted','text-white'); bs.style.background='transparent';bs.classList.replace('text-white','text-muted'); ic.classList.remove('d-none'); sc.classList.add('d-none'); } else{ bs.style.background='rgba(255,255,255,0.1)';bs.classList.replace('text-muted','text-white'); bo.style.background='transparent';bo.classList.replace('text-white','text-muted'); ic.classList.add('d-none'); sc.classList.remove('d-none'); updateMyCardsTarget(); } }
     function updateMyCardsTarget() { if(transferMode!=='self')return; const fid=document.getElementById('transferFromCard').value; const t=document.getElementById('transferToCardSelect'); t.innerHTML='<option disabled selected>Карта зачисления</option>'; myCards.filter(c=>c.id!=fid&&c.cardStatus==='ACTIVE').forEach(c=>{ t.innerHTML+=`<option value="${c.id}">**** ${c.cardNumber.slice(-4)}</option>`; }); }
-
-    async function submitTransfer() {
-        const fid=document.getElementById('transferFromCard').value; const amt=document.getElementById('transferAmount').value; let pl={fromCardId:parseInt(fid),amount:parseFloat(amt),description:"Web Transfer"};
-        if(transferMode==='others'){ const n=document.getElementById('transferToCardInput').value.replace(/\s/g,''); if(n.length<16)return; pl.toCardNumber=n; } else { const tid=document.getElementById('transferToCardSelect').value; pl.toCardId=parseInt(tid); }
-        try{ const r=await fetch('/api/user/transfers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(pl)}); if(r.ok){ transferModal.hide(); confetti({origin:{y:0.7},colors:['#00f2ff','#bc13fe']}); loadData(); loadNotifications(); }else{ alert('Ошибка'); } }catch(e){}
-    }
-
-    function openCardModal(id) {
-        const c=myCards.find(x=>x.id==id); if(!c)return; document.getElementById('modalCardNumber').innerText=c.cardNumber; document.getElementById('modalCardHolder').innerText=c.cardHolder; if(c.expiryDate)document.getElementById('modalCardExpiry').innerText=c.expiryDate.split('-')[1]+'/'+c.expiryDate.split('-')[0].slice(-2); document.getElementById('modalCardBalance').innerText=c.balance.toFixed(2)+' BYN'; document.getElementById('modalCardCvv').innerText=Math.floor(Math.random()*899)+100; document.getElementById('modalCardLogo').src=c.cardNumber.trim().startsWith('5')?MC_LOGO:VISA_LOGO; document.getElementById('modalCardStatus').innerText=c.cardStatus;
-        const a=document.getElementById('modalActions'); a.innerHTML=''; if(c.cardStatus==='ACTIVE')a.innerHTML=`<button onclick="sendRequest('${c.id}','block')" class="btn btn-outline-danger w-100">BLOCK</button>`; else if(c.cardStatus==='BLOCKED')a.innerHTML=`<button onclick="sendRequest('${c.id}','unblock')" class="btn btn-outline-success w-100">UNBLOCK</button>`; else a.innerHTML=`<button class="btn btn-outline-secondary disabled w-100">PENDING</button>`;
-        viewModal.show();
-    }
-
+    async function submitTransfer() { const fid=document.getElementById('transferFromCard').value; const amt=document.getElementById('transferAmount').value; let pl={fromCardId:parseInt(fid),amount:parseFloat(amt),description:"Web Transfer"}; if(transferMode==='others'){ const n=document.getElementById('transferToCardInput').value.replace(/\s/g,''); if(n.length<16)return; pl.toCardNumber=n; } else { const tid=document.getElementById('transferToCardSelect').value; pl.toCardId=parseInt(tid); } try{ const r=await fetch('/api/user/transfers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(pl)}); if(r.ok){ transferModal.hide(); confetti({origin:{y:0.7},colors:['#00f2ff','#bc13fe']}); loadData(); loadNotifications(); }else{ alert('Ошибка'); } }catch(e){} }
+    function openCardModal(id) { const c=myCards.find(x=>x.id==id); if(!c)return; document.getElementById('modalCardNumber').innerText=c.cardNumber; document.getElementById('modalCardHolder').innerText=c.cardHolder; if(c.expiryDate)document.getElementById('modalCardExpiry').innerText=c.expiryDate.split('-')[1]+'/'+c.expiryDate.split('-')[0].slice(-2); document.getElementById('modalCardBalance').innerText=c.balance.toFixed(2)+' BYN'; document.getElementById('modalCardCvv').innerText=Math.floor(Math.random()*899)+100; document.getElementById('modalCardLogo').src=c.cardNumber.trim().startsWith('5')?MC_LOGO:VISA_LOGO; document.getElementById('modalCardStatus').innerText=c.cardStatus; const a=document.getElementById('modalActions'); a.innerHTML=''; if(c.cardStatus==='ACTIVE')a.innerHTML=`<button onclick="sendRequest('${c.id}','block')" class="btn btn-outline-danger w-100">BLOCK</button>`; else if(c.cardStatus==='BLOCKED')a.innerHTML=`<button onclick="sendRequest('${c.id}','unblock')" class="btn btn-outline-success w-100">UNBLOCK</button>`; else a.innerHTML=`<button class="btn btn-outline-secondary disabled w-100">PENDING</button>`; viewModal.show(); }
     async function sendRequest(id,t) { if(confirm('Confirm?')){ await fetch(`/api/user/cards/${t}/${id}`,{method:'POST'}); viewModal.hide(); loadData(); } }
     function copyCardNumber(e) { navigator.clipboard.writeText(e.target.innerText.replace(/\s/g,'')); const t=document.getElementById('copyToast'); t.classList.remove('opacity-0'); setTimeout(()=>t.classList.add('opacity-0'),2000); }
     function animateValue(id,s,e,d) { const o=document.getElementById(id); if(!o)return; let st=null; const step=(ts)=>{ if(!st)st=ts; const p=Math.min((ts-st)/d,1); o.innerHTML=(p*(e-s)+s).toFixed(2); if(p<1)window.requestAnimationFrame(step); }; window.requestAnimationFrame(step); }

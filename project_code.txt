@@ -22,26 +22,6 @@ services:
       timeout: 5s
       retries: 5
 
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: spring_bank_app
-    ports:
-      - "8081:8080"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://bank_postgres:5432/${DB_NAME}
-      SPRING_DATASOURCE_USERNAME: ${DB_USER}
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
-      ADMIN_USERNAME: ${ADMIN_USERNAME}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    env_file:
-      - .env
 volumes:
   postgres_data:
 
@@ -1041,6 +1021,80 @@ public class NotificationController {
 
 
 ================================================================================
+ФАЙЛ: D:\TeskTaskBank\Bank_REST\.\src\main\java\com\example\bankcards\controller\user\QuickTransferController.java
+================================================================================
+
+package com.example.bankcards.controller.user;
+
+import com.example.bankcards.exception.user.UserNotFoundException;
+import com.example.bankcards.model.dto.user.QuickTransferDto;
+import com.example.bankcards.model.entity.QuickTransfer;
+import com.example.bankcards.model.entity.User;
+import com.example.bankcards.repository.QuickTransferRepository;
+import com.example.bankcards.repository.UserRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@RestController
+@RequestMapping("/api/user/quick-transfers")
+@RequiredArgsConstructor
+@Tag(name = "Quick Transfers", description = "Manage favorite contacts")
+public class QuickTransferController {
+
+    private final QuickTransferRepository quickTransferRepository;
+    private final UserRepository userRepository;
+
+    @GetMapping
+    public ResponseEntity<List<QuickTransferDto>> getAll(Authentication authentication) {
+        List<QuickTransfer> list = quickTransferRepository.findByUserUsername(authentication.getName());
+        List<QuickTransferDto> dtos = list.stream().map(qt -> {
+            QuickTransferDto dto = new QuickTransferDto();
+            dto.setId(qt.getId());
+            dto.setName(qt.getName());
+            dto.setCardNumber(qt.getCardNumber());
+            return dto;
+        }).collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
+    }
+
+    @PostMapping
+    @Transactional
+    public ResponseEntity<QuickTransferDto> create(@RequestBody QuickTransferDto request, Authentication authentication) {
+        User user = userRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        QuickTransfer qt = new QuickTransfer();
+        qt.setUser(user);
+        qt.setName(request.getName());
+        qt.setCardNumber(request.getCardNumber());
+
+        QuickTransfer saved = quickTransferRepository.save(qt);
+
+        request.setId(saved.getId());
+        return ResponseEntity.ok(request);
+    }
+
+    @DeleteMapping("/{id}")
+    @Transactional
+    public ResponseEntity<Void> delete(@PathVariable Long id, Authentication authentication) {
+        QuickTransfer qt = quickTransferRepository.findById(id).orElse(null);
+        if (qt != null && qt.getUser().getUsername().equals(authentication.getName())) {
+            quickTransferRepository.delete(qt);
+        }
+        return ResponseEntity.ok().build();
+    }
+}
+
+
+================================================================================
 ФАЙЛ: D:\TeskTaskBank\Bank_REST\.\src\main\java\com\example\bankcards\controller\user\SupportTicketController.java
 ================================================================================
 
@@ -1438,6 +1492,71 @@ public class UserCardController {
         String username = authentication.getName();
         BigDecimal balance = userCardService.getTotalBalance(username);
         return ResponseEntity.ok(balance);
+    }
+}
+
+
+================================================================================
+ФАЙЛ: D:\TeskTaskBank\Bank_REST\.\src\main\java\com\example\bankcards\controller\user\UserProfileController.java
+================================================================================
+
+package com.example.bankcards.controller.user;
+
+import com.example.bankcards.exception.user.UserNotFoundException;
+import com.example.bankcards.model.dto.user.UserResponseDto;
+import com.example.bankcards.model.entity.User;
+import com.example.bankcards.repository.UserRepository;
+import com.example.bankcards.util.mapper.UserMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
+
+@RestController
+@RequestMapping("/api/user/profile")
+@RequiredArgsConstructor
+@Tag(name = "User Profile", description = "Profile management and settings")
+public class UserProfileController {
+
+    private final UserRepository userRepository;
+    private final UserMapper userMapper;
+
+    @Operation(summary = "Get current user profile")
+    @GetMapping
+    public ResponseEntity<UserResponseDto> getMyProfile(Authentication authentication) {
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        return ResponseEntity.ok(userMapper.toUserResponseDto(user));
+    }
+
+    @Operation(summary = "Update monthly spending limit")
+    @PostMapping("/limit")
+    @Transactional
+    public ResponseEntity<UserResponseDto> updateLimit(@RequestBody LimitUpdateRequest request, Authentication authentication) {
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (request.getLimit().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Limit cannot be negative");
+        }
+
+        user.setMonthlyLimit(request.getLimit());
+        userRepository.save(user);
+
+        return ResponseEntity.ok(userMapper.toUserResponseDto(user));
+    }
+
+    @Data
+    public static class LimitUpdateRequest {
+        private BigDecimal limit;
     }
 }
 
@@ -2941,6 +3060,22 @@ public class TransferResponseDto {
 
 
 ================================================================================
+ФАЙЛ: D:\TeskTaskBank\Bank_REST\.\src\main\java\com\example\bankcards\model\dto\user\QuickTransferDto.java
+================================================================================
+
+package com.example.bankcards.model.dto.user;
+
+import lombok.Data;
+
+@Data
+public class QuickTransferDto {
+    private Long id;
+    private String name;
+    private String cardNumber;
+}
+
+
+================================================================================
 ФАЙЛ: D:\TeskTaskBank\Bank_REST\.\src\main\java\com\example\bankcards\model\dto\user\UserResponseDto.java
 ================================================================================
 
@@ -2950,6 +3085,7 @@ import com.example.bankcards.model.entity.enums.Role;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -2969,6 +3105,8 @@ public class UserResponseDto {
     private String email;
     @Schema(description = "User's role (e.g., USER, ADMIN).", example = "USER")
     private Role role;
+    private BigDecimal monthlyLimit; // Новое поле
+    private String avatarUrl;
     @Schema(description = "Date and time when the user account was created.", example = "2023-01-15T09:00:00")
     private LocalDateTime createdAt;
     @Schema(description = "Date and time when the user account was last updated.", example = "2023-10-20T14:45:00")
@@ -3430,6 +3568,34 @@ public class Notification extends BasicEntity {
 
 
 ================================================================================
+ФАЙЛ: D:\TeskTaskBank\Bank_REST\.\src\main\java\com\example\bankcards\model\entity\QuickTransfer.java
+================================================================================
+
+package com.example.bankcards.model.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Table(name = "t_quick_transfers")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class QuickTransfer extends BasicEntity {
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false)
+    private String cardNumber;
+}
+
+
+================================================================================
 ФАЙЛ: D:\TeskTaskBank\Bank_REST\.\src\main\java\com\example\bankcards\model\entity\RefreshToken.java
 ================================================================================
 
@@ -3709,71 +3875,39 @@ import com.example.bankcards.model.entity.enums.Role;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import lombok.*;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Represents a user in the bank card system.
- * This entity stores user authentication details, contact information, and their role.
- * It extends {@link BasicEntity} to inherit common fields like ID and timestamps.
- */
 @Entity
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "t_users")
-public class User extends BasicEntity{
+public class User extends BasicEntity {
 
-    /**
-     * The unique username of the user.
-     */
     @Column(unique = true, nullable = false, length = 50)
     private String username;
 
-    /**
-     * The unique email address of the user.
-     * Validated as an email format.
-     */
     @Email
     @Column(unique = true, nullable = false, length = 100)
     private String email;
 
-    /**
-     * The hashed password of the user.
-     */
     @Column(nullable = false)
     private String password;
 
-    /**
-     * The role of the user (e.g., ROLE_USER, ROLE_ADMIN).
-     * Defaults to {@link Role#ROLE_USER}.
-     */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role = Role.ROLE_USER;
 
-    /**
-     * A list of bank accounts owned by this user. (NEW FIELD)
-     * One-to-many relationship, with cascade operations for all changes and fetched lazily.
-     */
+    // НОВОЕ ПОЛЕ: Лимит трат (по умолчанию 5000)
+    @Column(name = "monthly_limit", precision = 19, scale = 2)
+    private BigDecimal monthlyLimit = new BigDecimal("5000.00");
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Account> accounts = new ArrayList<>();
 
-    /*
-     * Список cards удален, так как Card теперь связана через Account,
-     * и в Card нет поля 'user' для обратного отображения.
-     */
-
-    /**
-     * Constructor for creating a new user with essential details.
-     * This constructor is useful for initial user creation without an ID or timestamps.
-     *
-     * @param username The username of the new user.
-     * @param email The email address of the new user.
-     * @param password The raw password of the new user (will be encoded before saving).
-     * @param role The role assigned to the new user.
-     */
     public User(String username, String email, String password, Role role) {
         this.username = username;
         this.email = email;
@@ -3856,6 +3990,21 @@ import java.util.List;
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
     List<Notification> findByUserUsernameOrderByCreatedAtDesc(String username);
     List<Notification> findByUserUsernameAndIsReadFalseOrderByCreatedAtDesc(String username);
+}
+
+
+================================================================================
+ФАЙЛ: D:\TeskTaskBank\Bank_REST\.\src\main\java\com\example\bankcards\repository\QuickTransferRepository.java
+================================================================================
+
+package com.example.bankcards.repository;
+
+import com.example.bankcards.model.entity.QuickTransfer;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+
+public interface QuickTransferRepository extends JpaRepository<QuickTransfer, Long> {
+    List<QuickTransfer> findByUserUsername(String username);
 }
 
 
@@ -6280,16 +6429,20 @@ package com.example.bankcards.util.mapper;
 import com.example.bankcards.model.dto.user.UserResponseDto;
 import com.example.bankcards.model.entity.User;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 
-/**
- * Mapper interface for converting between {@link com.example.bankcards.model.entity.User} entities
- * and their corresponding DTOs ({@link com.example.bankcards.model.dto.user.UserResponseDto}).
- * This interface uses MapStruct for automatic mapping generation.
- */
 @Mapper(componentModel = "spring")
 public interface UserMapper {
 
+    @Mapping(target = "avatarUrl", source = "username", qualifiedByName = "generateAvatarUrl")
     UserResponseDto toUserResponseDto(User user);
+
+    @Named("generateAvatarUrl")
+    default String generateAvatarUrl(String username) {
+        // Генерируем уникального робота для каждого юзера
+        return "https://robohash.org/" + username + "?set=set1&bgset=bg2&size=150x150";
+    }
 }
 
 
@@ -6378,6 +6531,8 @@ server:
     <include file="db/migration/changes/007-create-notifications-table.xml"/>
     <include file="db/migration/changes/008-create-transfers-table.xml"/>
     <include file="db/migration/changes/009-create-refresh-token-table.xml"/>
+    <include file="db/migration/changes/010-add-monthly-limit-to-users.xml"/>
+    <include file="db/migration/changes/011-create-quick-transfers-table.xml"/>
 
 </databaseChangeLog>
 
@@ -6819,6 +6974,58 @@ server:
 
 
 ================================================================================
+ФАЙЛ: D:\TeskTaskBank\Bank_REST\.\src\main\resources\db\migration\changes\010-add-monthly-limit-to-users.xml
+================================================================================
+
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+    <changeSet id="1-add-monthly-limit" author="cyberbank">
+        <addColumn tableName="t_users">
+            <column name="monthly_limit" type="DECIMAL(19, 2)" defaultValueNumeric="5000.00"/>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>
+
+
+================================================================================
+ФАЙЛ: D:\TeskTaskBank\Bank_REST\.\src\main\resources\db\migration\changes\011-create-quick-transfers-table.xml
+================================================================================
+
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+    <changeSet id="1-create-quick-transfers" author="cyberbank">
+        <createTable tableName="t_quick_transfers">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="user_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="card_number" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMP" defaultValueDate="CURRENT_TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="t_quick_transfers" baseColumnNames="user_id"
+                                 referencedTableName="t_users" referencedColumnNames="id"
+                                 constraintName="fk_qt_user"/>
+    </changeSet>
+</databaseChangeLog>
+
+
+================================================================================
 ФАЙЛ: D:\TeskTaskBank\Bank_REST\.\src\main\resources\templates\admin_dashboard.html
 ================================================================================
 
@@ -6826,251 +7033,182 @@ server:
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Админ Панель</title>
+    <title>Bank Admin • Cyber Panel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Те же стили карты, что и у юзера */
+        :root {
+            --bg-dark: #0a0a0a;
+            --card-bg: #111;
+            --border-color: #222;
+            --text-main: #e0e0e0;
+            --neon-accent: #ffb700;
+        }
+        body { background: var(--bg-dark); color: var(--text-main); font-family: 'Inter', sans-serif; }
+
+        .navbar-custom { background: #000; border-bottom: 1px solid var(--border-color); }
+        .nav-link { color: #888; transition: 0.3s; cursor: pointer; }
+        .nav-link.active { color: var(--neon-accent); font-weight: bold; background: rgba(255,183,0,0.1); border-radius: 6px; }
+        .nav-link:hover { color: #fff; }
+
+        /* Карточки и таблицы */
+        .card-custom { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 12px; }
+        .table-custom { --bs-table-bg: transparent; --bs-table-color: #ccc; --bs-table-border-color: var(--border-color); }
+        .table-custom th { color: #666; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
+        .table-custom td { vertical-align: middle; }
+
+        /* Модальные окна и формы */
+        .modal-dark { background: #1a1a1a; color: white; border: 1px solid #333; }
+        .form-control-dark, .form-select { background: #000 !important; border: 1px solid #333 !important; color: white !important; }
+        .form-control-dark:focus, .form-select:focus { border-color: var(--neon-accent) !important; box-shadow: 0 0 5px rgba(255,183,0,0.3) !important; }
+        .btn-close { filter: invert(1); }
+
+        /* 3D Card */
         .credit-card-wrap { perspective: 1000px; width: 350px; height: 220px; margin: 0 auto; cursor: pointer; }
         .credit-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s; transform-style: preserve-3d; }
         .credit-card-wrap.flipped .credit-card-inner { transform: rotateY(180deg); }
-        .credit-card-front, .credit-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); color: white; background: linear-gradient(135deg, #1a1a1a 0%, #434343 100%); }
+        .credit-card-front, .credit-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); color: white; background: #222; border: 1px solid #333; }
         .credit-card-front { padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
         .credit-card-back { transform: rotateY(180deg); padding-top: 20px; }
-        .card-chip { width: 50px; height: 35px; background: linear-gradient(135deg, #ffd700 0%, #d4af37 100%); border-radius: 5px; margin-bottom: 10px; }
-        .card-number { font-family: 'Courier New', monospace; font-size: 1.25rem; letter-spacing: 2px; text-shadow: 1px 1px 2px black; }
-        .card-holder { font-family: 'Courier New', monospace; text-transform: uppercase; font-size: 0.9rem; }
-        .card-expiry { font-family: 'Courier New', monospace; font-size: 0.9rem; }
-        .magnetic-strip { background: #000; height: 40px; width: 100%; margin-bottom: 20px; }
-        /* Белая полоса CVV */
-        .cvv-strip { background: #fff; color: #000; height: 30px; width: 80%; margin: 0 auto; text-align: right; padding-right: 10px; line-height: 30px; font-family: 'Courier New', monospace; font-size: 1.1rem; font-style: italic; }
-        .card-logo { width: 60px; filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.5)); }
-
-        /* Стили для блока заявок */
-        .request-row { transition: background 0.2s; }
-        .request-row:hover { background: #fff3cd; }
+        .card-number { font-family: 'Space Mono', monospace; font-size: 1.25rem; letter-spacing: 2px; }
     </style>
 </head>
-<body class="bg-light">
+<body>
 
-<nav class="navbar navbar-dark bg-dark px-4 shadow">
-    <a class="navbar-brand fw-bold" href="#"><i class="fas fa-university me-2"></i>Bank Admin</a>
+<nav class="navbar navbar-custom px-4 py-3">
+    <div class="d-flex align-items-center gap-4">
+        <a class="navbar-brand fw-bold text-white" href="#"><i class="fas fa-shield-alt me-2 text-warning"></i>ADMIN CORE</a>
+        <ul class="nav gap-2">
+            <li class="nav-item"><a class="nav-link active px-3" onclick="switchTab('cards')" id="tab-cards">CARDS</a></li>
+            <li class="nav-item"><a class="nav-link px-3 position-relative" onclick="switchTab('tickets')" id="tab-tickets">
+                TICKETS <span id="ticketBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none">0</span>
+            </a></li>
+        </ul>
+    </div>
     <div class="d-flex gap-2">
-        <button class="btn btn-success btn-sm" onclick="openCreateModal()"><i class="fas fa-plus me-1"></i> Выпустить карту</button>
-        <button onclick="logout()" class="btn btn-outline-danger btn-sm"><i class="fas fa-sign-out-alt me-1"></i> Выход</button>
+        <button class="btn btn-outline-warning btn-sm fw-bold" onclick="openCreateModal()"><i class="fas fa-plus me-1"></i> NEW CARD</button>
+        <button onclick="logout()" class="btn btn-outline-secondary btn-sm"><i class="fas fa-sign-out-alt"></i></button>
     </div>
 </nav>
 
-<div class="container mt-5">
+<div class="container mt-4">
 
-    <!-- БЛОК ЗАЯВОК (REQUESTS) - Он появится, если есть заявки -->
-    <div id="requestsSection" class="mb-5 d-none">
-        <h4 class="mb-3 text-warning fw-bold"><i class="fas fa-bell me-2"></i>Требуют внимания</h4>
-        <div class="card shadow border-warning">
-            <div class="card-header bg-warning text-dark fw-bold">Входящие запросы от пользователей</div>
-            <div class="card-body p-0">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead class="table-light">
-                    <tr><th>ID Карты</th><th>Пользователь</th><th>Номер</th><th>Тип запроса</th><th class="text-end pe-4">Решение</th></tr>
-                    </thead>
-                    <tbody id="requestsTable"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="col-12">
-            <h2 class="mb-4">База всех карт</h2>
-            <div class="card shadow-sm">
+    <!-- Вкладка КАРТЫ -->
+    <div id="section-cards">
+        <div id="requestsSection" class="mb-4 d-none">
+            <div class="card card-custom border-warning mb-4">
+                <div class="card-header bg-warning text-dark fw-bold border-0">ATTENTION REQUIRED</div>
                 <div class="card-body p-0">
-                    <table class="table table-hover mb-0 align-middle">
-                        <thead class="table-secondary">
-                        <tr>
-                            <th class="ps-4">ID</th>
-                            <th>Владелец</th>
-                            <th>Номер карты</th>
-                            <th>Баланс</th>
-                            <th>Статус</th>
-                            <th class="text-end pe-4">Действия</th>
-                        </tr>
-                        </thead>
-                        <tbody id="cardsTable">
-                        <tr><td colspan="6" class="text-center p-4">Загрузка...</td></tr>
-                        </tbody>
+                    <table class="table table-custom mb-0 align-middle">
+                        <thead class="bg-dark"><tr><th class="ps-4">USER</th><th>CARD</th><th>REQUEST</th><th class="text-end pe-4">ACTION</th></tr></thead>
+                        <tbody id="requestsTable"></tbody>
                     </table>
                 </div>
             </div>
-            <div class="mt-3 text-end"><button class="btn btn-primary" onclick="loadCards()">Обновить</button></div>
         </div>
+
+        <div class="card card-custom shadow-lg">
+            <div class="card-body p-0">
+                <table class="table table-custom table-hover mb-0 align-middle">
+                    <thead>
+                    <tr><th class="ps-4">ID</th><th>USER</th><th>NUMBER</th><th>BALANCE (BYN)</th><th>STATUS</th><th class="text-end pe-4">ACTIONS</th></tr>
+                    </thead>
+                    <tbody id="cardsTable"><tr><td colspan="6" class="text-center p-5 text-muted">Loading Database...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="mt-3 text-end"><button class="btn btn-dark btn-sm text-muted" onclick="loadCards()">Refresh Data</button></div>
+    </div>
+
+    <!-- Вкладка ТИКЕТЫ -->
+    <div id="section-tickets" class="d-none">
+        <h4 class="mb-4 text-white">Support Tickets</h4>
+        <div class="row g-4" id="ticketsGrid"><div class="col-12 text-center text-muted">No open tickets</div></div>
     </div>
 </div>
 
-<!-- (Модалки Create, Balance, Success - они остались без изменений, код из прошлого ответа корректен, просто вставь их сюда) -->
-<!-- Create Modal -->
-<div class="modal fade" id="createCardModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Выпуск</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="createCardForm"><div class="mb-3"><label>Пользователь</label><select id="userIdSelect" class="form-select" required></select></div><div class="mb-3"><label>Номер</label><div class="input-group"><input type="text" id="newCardNumber" class="form-control font-monospace" maxlength="16"><button class="btn btn-outline-secondary" type="button" onclick="generateRandomCardNumber()"><i class="fas fa-random"></i></button></div></div><div class="mb-3"><label>Владелец</label><input type="text" id="newCardHolder" class="form-control text-uppercase"></div><input type="hidden" id="realExpiryDate"><input type="hidden" id="newBalance" value="0"></form></div><div class="modal-footer"><button class="btn btn-success" onclick="submitCreateCard()">Создать</button></div></div></div></div>
-<!-- Balance Modal -->
-<div class="modal fade" id="balanceModal" tabindex="-1"><div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="balanceModalTitle">Сумма</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="balanceCardId"><input type="hidden" id="balanceAction"><input type="number" id="balanceAmount" class="form-control" placeholder="0.00"><button class="btn btn-primary w-100 mt-3" onclick="submitBalanceChange()">ОК</button></div></div></div></div>
-<!-- Success Modal -->
-<div class="modal fade" id="successCardModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content bg-transparent border-0"><div class="modal-body"><div class="credit-card-wrap" onclick="this.classList.toggle('flipped')"><div class="credit-card-inner"><div class="credit-card-front"><div class="d-flex justify-content-between align-items-center"><div class="card-chip"></div><i class="fas fa-wifi fa-lg"></i></div><div class="card-number" id="successCardNumber">####</div><div class="d-flex justify-content-between align-items-end"><div><div class="card-holder" id="successCardHolder">NAME</div></div><div><div class="card-expiry" id="successCardExpiry">MM/YY</div></div></div><div style="position:absolute;bottom:20px;right:20px;"><img id="successCardLogo" class="card-logo" src=""></div></div><div class="credit-card-back"><div class="magnetic-strip"></div><div class="cvv-strip" id="successCardCvv">000</div></div></div></div><div class="text-center mt-4"><button class="btn btn-light" data-bs-dismiss="modal">Закрыть</button></div></div></div></div></div>
+<!-- Modals -->
+<div class="modal fade" id="createCardModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content modal-dark"><div class="modal-header border-secondary"><h5 class="modal-title">Issue New Card</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="createCardForm"><div class="mb-3"><label class="text-muted small">User</label><select id="userIdSelect" class="form-select" required></select></div><div class="mb-3"><label class="text-muted small">Card Number</label><div class="input-group"><input type="text" id="newCardNumber" class="form-control form-control-dark font-monospace" maxlength="16"><button class="btn btn-outline-secondary" type="button" onclick="generateRandomCardNumber()"><i class="fas fa-random"></i></button></div></div><div class="mb-3"><label class="text-muted small">Card Holder</label><input type="text" id="newCardHolder" class="form-control form-control-dark text-uppercase"></div><input type="hidden" id="realExpiryDate"><input type="hidden" id="newBalance" value="0"></form></div><div class="modal-footer border-secondary"><button class="btn btn-warning w-100 fw-bold" onclick="submitCreateCard()">CREATE CARD</button></div></div></div></div>
 
+<div class="modal fade" id="balanceModal" tabindex="-1"><div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content modal-dark"><div class="modal-header border-0"><h5 class="modal-title fs-6 text-muted" id="balanceModalTitle">Operation</h5><button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="balanceCardId"><input type="hidden" id="balanceAction"><div class="input-group mb-3"><span class="input-group-text border-0 bg-dark text-muted">BYN</span><input type="number" id="balanceAmount" class="form-control form-control-dark fw-bold fs-4" placeholder="0.00"></div><button class="btn btn-primary w-100" onclick="submitBalanceChange()">EXECUTE</button></div></div></div></div>
+
+<div class="modal fade" id="successCardModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content bg-transparent border-0"><div class="modal-body"><div class="credit-card-wrap" onclick="this.classList.toggle('flipped')"><div class="credit-card-inner"><div class="credit-card-front"><div class="d-flex justify-content-between align-items-center"><div style="width:40px;height:30px;background:#d4af37;border-radius:4px;"></div><i class="fas fa-wifi"></i></div><div class="card-number mt-4" id="successCardNumber">####</div><div class="mt-auto d-flex justify-content-between"><div class="card-holder" id="successCardHolder">NAME</div><div class="card-expiry" id="successCardExpiry">MM/YY</div></div></div><div class="credit-card-back"><div style="background:#000;height:40px;width:100%;margin-top:20px;"></div><div style="background:#fff;color:#000;width:80%;margin:10px auto;text-align:right;padding-right:10px;" id="successCardCvv">000</div></div></div></div><div class="text-center mt-3"><button class="btn btn-outline-light rounded-pill px-4" data-bs-dismiss="modal">Close</button></div></div></div></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // ВЕСЬ СКРИПТ ОСТАЕТСЯ ТАКИМ ЖЕ КАК БЫЛ, ОН УЖЕ УМЕЕТ ОБРАБАТЫВАТЬ ЗАЯВКИ
-    // Я просто продублирую его для надежности.
-
     let createModal, successModal, balanceModal;
-    const VISA_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/1200px-Visa_Inc._logo.svg.png";
-    const MC_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1280px-Mastercard-logo.svg.png";
-
     document.addEventListener('DOMContentLoaded', () => {
         createModal = new bootstrap.Modal(document.getElementById('createCardModal'));
         successModal = new bootstrap.Modal(document.getElementById('successCardModal'));
         balanceModal = new bootstrap.Modal(document.getElementById('balanceModal'));
-        loadCards();
+        loadCards(); loadTickets();
     });
+
+    function switchTab(tab) {
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        document.getElementById('section-cards').classList.add('d-none');
+        document.getElementById('section-tickets').classList.add('d-none');
+        document.getElementById('section-' + tab).classList.remove('d-none');
+        if(tab === 'cards') loadCards();
+        if(tab === 'tickets') loadTickets();
+    }
 
     async function loadCards() {
         try {
             const response = await fetch('/api/admin/cards?page=0&size=50');
-            if (response.status === 401 || response.status === 403) { window.location.href = '/login'; return; }
+            if (response.status === 401) { window.location.href = '/login'; return; }
             const data = await response.json();
-
             const tbody = document.getElementById('cardsTable');
             const reqBody = document.getElementById('requestsTable');
             const reqSection = document.getElementById('requestsSection');
-
-            tbody.innerHTML = '';
-            reqBody.innerHTML = '';
-            let hasRequests = false;
+            tbody.innerHTML = ''; reqBody.innerHTML = ''; let hasRequests = false;
 
             data.content.forEach(card => {
-                // --- ЛОГИКА ЗАЯВОК ---
-                if(card.cardStatus === 'PENDING_BLOCK' || card.cardStatus === 'PENDING_UNBLOCK') {
+                if(card.cardStatus.includes('PENDING')) {
                     hasRequests = true;
-                    const type = card.cardStatus === 'PENDING_BLOCK' ? 'Блокировка' : 'Разблокировка';
-                    const color = card.cardStatus === 'PENDING_BLOCK' ? 'danger' : 'success';
-
-                    reqBody.innerHTML += `
-                        <tr class="request-row">
-                            <td class="fw-bold">#${card.id}</td>
-                            <td>${card.username}</td>
-                            <td class="font-monospace">${card.cardNumber}</td>
-                            <td><span class="badge bg-${color} fs-6">${type}</span></td>
-                            <td class="text-end pe-4">
-                                <button class="btn btn-success btn-sm me-2" onclick="${card.cardStatus==='PENDING_BLOCK'?'approveBlock':'approveUnblock'}(${card.id})">
-                                    <i class="fas fa-check me-1"></i>Принять
-                                </button>
-                                <button class="btn btn-outline-secondary btn-sm" onclick="declineRequest(${card.id})">
-                                    <i class="fas fa-times me-1"></i>Отклонить
-                                </button>
-                            </td>
-                        </tr>
-                    `;
+                    reqBody.innerHTML += `<tr><td class="ps-4 fw-bold">${card.username}</td><td class="font-monospace text-muted">${card.cardNumber}</td><td><span class="badge bg-warning text-dark">${card.cardStatus}</span></td><td class="text-end pe-4"><button class="btn btn-sm btn-success me-1" onclick="${card.cardStatus==='PENDING_BLOCK'?'approveBlock':'approveUnblock'}(${card.id})">YES</button><button class="btn btn-sm btn-outline-light" onclick="declineRequest(${card.id})">NO</button></td></tr>`;
                 }
-
-                // --- ОБЩАЯ ТАБЛИЦА ---
-                let statusBadge = 'bg-secondary';
-                if(card.cardStatus === 'ACTIVE') statusBadge = 'bg-success';
-                if(card.cardStatus === 'BLOCKED') statusBadge = 'bg-danger';
-                if(card.cardStatus.includes('PENDING')) statusBadge = 'bg-warning text-dark';
-
+                let statusColor = card.cardStatus === 'ACTIVE' ? 'text-success' : 'text-danger';
                 tbody.innerHTML += `
-                    <tr>
-                        <td class="ps-4 fw-bold">#${card.id}</td>
-                        <td>${card.username || card.userId}</td>
-                        <td class="font-monospace">${card.cardNumber}</td>
-                        <td class="fw-bold text-success">₽${card.balance.toFixed(2)}</td>
-                        <td><span class="badge ${statusBadge}">${card.cardStatus}</span></td>
-                        <td class="text-end pe-4">
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-success" onclick="openBalanceModal(${card.id}, 'deposit')"><i class="fas fa-plus"></i></button>
-                                <button class="btn btn-outline-warning" onclick="openBalanceModal(${card.id}, 'withdraw')"><i class="fas fa-minus"></i></button>
-                                ${getActionButtons(card)}
-                                <button class="btn btn-outline-dark" onclick="deleteCard(${card.id})"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
+                    <tr><td class="ps-4 text-muted">#${card.id}</td><td>${card.username}</td><td class="font-monospace text-white">${card.cardNumber}</td><td class="fw-bold text-white">${card.balance.toFixed(2)}</td><td class="${statusColor} fw-bold">${card.cardStatus}</td>
+                    <td class="text-end pe-4"><div class="btn-group btn-group-sm"><button class="btn btn-outline-secondary" onclick="openBalanceModal(${card.id}, 'deposit')">+</button><button class="btn btn-outline-secondary" onclick="openBalanceModal(${card.id}, 'withdraw')">-</button><button class="btn btn-outline-danger" onclick="deleteCard(${card.id})"><i class="fas fa-trash"></i></button>${card.cardStatus==='ACTIVE' ? `<button class="btn btn-outline-warning" onclick="blockCard(${card.id})"><i class="fas fa-lock"></i></button>` : ''}${card.cardStatus==='BLOCKED' ? `<button class="btn btn-outline-success" onclick="activateCard(${card.id})"><i class="fas fa-unlock"></i></button>` : ''}</div></td></tr>`;
             });
-
-            if(hasRequests) reqSection.classList.remove('d-none');
-            else reqSection.classList.add('d-none');
-
-        } catch (e) { console.error(e); }
+            if(hasRequests) reqSection.classList.remove('d-none'); else reqSection.classList.add('d-none');
+        } catch (e) {}
     }
 
-    function getActionButtons(card) {
-        if(card.cardStatus === 'ACTIVE') return `<button class="btn btn-outline-danger" onclick="blockCard(${card.id})"><i class="fas fa-lock"></i></button>`;
-        if(card.cardStatus === 'BLOCKED') return `<button class="btn btn-outline-success" onclick="activateCard(${card.id})"><i class="fas fa-unlock"></i></button>`;
-        return '';
+    async function loadTickets() {
+        try {
+            const res = await fetch('/api/admin/tickets/open');
+            const tickets = await res.json();
+            const grid = document.getElementById('ticketsGrid');
+            const badge = document.getElementById('ticketBadge');
+            if(tickets.length > 0) { badge.innerText = tickets.length; badge.classList.remove('d-none'); } else { badge.classList.add('d-none'); }
+            grid.innerHTML = '';
+            if(tickets.length === 0) { grid.innerHTML = '<div class="col-12 text-center text-muted py-5">No active tickets</div>'; return; }
+            tickets.forEach(t => {
+                let btn = t.status === 'OPEN' ? `<button class="btn btn-warning btn-sm w-100" onclick="assignTicket(${t.id})">Take Ticket</button>` : `<button class="btn btn-success btn-sm w-100" onclick="closeTicket(${t.id})">Close Ticket</button>`;
+                grid.innerHTML += `<div class="col-md-4"><div class="card card-custom p-3 border-secondary"><div class="d-flex justify-content-between mb-2"><span class="badge bg-secondary">${t.status}</span><small class="text-muted">${t.createdByUsername}</small></div><h6 class="fw-bold text-white">${t.subject}</h6><p class="small text-muted bg-dark p-2 rounded">${t.description}</p>${btn}</div></div>`;
+            });
+        } catch(e) {}
     }
 
+    // Reuse logic (functions are same as before)
+    async function assignTicket(id) { if(confirm('Take ticket?')) { await fetch(`/api/admin/tickets/${id}/assign`, { method:'POST' }); loadTickets(); } }
+    async function closeTicket(id) { if(confirm('Close ticket?')) { await fetch(`/api/admin/tickets/${id}/close`, { method:'POST' }); loadTickets(); } }
     async function approveBlock(id) { await fetch(`/api/admin/cards/${id}/approve-block`, { method: 'POST' }); loadCards(); }
     async function approveUnblock(id) { await fetch(`/api/admin/cards/${id}/approve-unblock`, { method: 'POST' }); loadCards(); }
     async function declineRequest(id) { await fetch(`/api/admin/cards/${id}/decline`, { method: 'POST' }); loadCards(); }
-
-    async function blockCard(id) { if(confirm('Блок?')) await fetch(`/api/admin/cards/${id}/block`, { method: 'POST' }); loadCards(); }
+    async function blockCard(id) { if(confirm('Block?')) await fetch(`/api/admin/cards/${id}/block`, { method: 'POST' }); loadCards(); }
     async function activateCard(id) { await fetch(`/api/admin/cards/${id}/activate`, { method: 'POST' }); loadCards(); }
-    async function deleteCard(id) { if(confirm('Удалить?')) { await fetch(`/api/admin/cards/${id}`, { method: 'DELETE' }); loadCards(); }}
-
-    function openBalanceModal(id, action) {
-        document.getElementById('balanceCardId').value = id;
-        document.getElementById('balanceAction').value = action;
-        document.getElementById('balanceModalTitle').innerText = action === 'deposit' ? 'Пополнение (₽)' : 'Снятие (₽)';
-        balanceModal.show();
-    }
-    async function submitBalanceChange() {
-        const id = document.getElementById('balanceCardId').value;
-        const action = document.getElementById('balanceAction').value;
-        const amount = document.getElementById('balanceAmount').value;
-        if(!amount || amount <= 0) return;
-        await fetch(`/api/admin/cards/${id}/${action}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({amount:parseFloat(amount)}) });
-        balanceModal.hide(); loadCards();
-    }
-
-    async function openCreateModal() {
-        const select = document.getElementById('userIdSelect'); select.innerHTML = '<option>Загрузка...</option>';
-        const date = new Date(); date.setFullYear(date.getFullYear() + 5);
-        document.getElementById('realExpiryDate').value = date.toISOString().split('T')[0];
-        document.getElementById('newCardNumber').value = '';
-
-        const res = await fetch('/api/admin/users');
-        const users = await res.json();
-        select.innerHTML = '<option disabled selected>Выбрать юзера</option>';
-        users.forEach(u => select.innerHTML += `<option value="${u.id}">${u.username}</option>`);
-        createModal.show();
-    }
-
-    function generateRandomCardNumber() {
-        let prefix = Math.random() > 0.5 ? "4000" : "5100";
-        let rnd = ""; for(let i=0;i<11;i++) rnd+=Math.floor(Math.random()*10);
-        let num = prefix + rnd;
-        let sum=0, d=true;
-        for(let i=num.length-1; i>=0; i--){ let n=parseInt(num.charAt(i)); if(d){ n*=2; if(n>9) n-=9; } sum+=n; d=!d; }
-        document.getElementById('newCardNumber').value = num + ((10-(sum%10))%10);
-    }
-
-    async function submitCreateCard() {
-        const userId = document.getElementById('userIdSelect').value;
-        const num = document.getElementById('newCardNumber').value;
-        const holder = document.getElementById('newCardHolder').value;
-        const date = document.getElementById('realExpiryDate').value;
-
-        const res = await fetch('/api/admin/cards', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({userId:parseInt(userId), cardNumber:num, cardHolder:holder.toUpperCase(), expiryDate:date, balance:0}) });
-        if(res.ok) {
-            createModal.hide(); loadCards();
-            const formattedNum = num.replace(/(\d{4})(?=\d)/g, '$1 ');
-            document.getElementById('successCardNumber').innerText = formattedNum;
-            document.getElementById('successCardHolder').innerText = holder.toUpperCase();
-            document.getElementById('successCardExpiry').innerText = '11/30';
-            document.getElementById('successCardCvv').innerText = Math.floor(Math.random()*899)+100;
-            document.getElementById('successCardLogo').src = num.startsWith('4') ? VISA_LOGO : MC_LOGO;
-            successModal.show();
-        } else alert('Ошибка');
-    }
-
+    async function deleteCard(id) { if(confirm('Delete?')) { await fetch(`/api/admin/cards/${id}`, { method: 'DELETE' }); loadCards(); }}
+    function openBalanceModal(id, action) { document.getElementById('balanceCardId').value=id; document.getElementById('balanceAction').value=action; balanceModal.show(); }
+    async function submitBalanceChange() { const id=document.getElementById('balanceCardId').value; const act=document.getElementById('balanceAction').value; const amt=document.getElementById('balanceAmount').value; await fetch(`/api/admin/cards/${id}/${act}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:parseFloat(amt)})}); balanceModal.hide(); loadCards(); }
+    async function openCreateModal() { const s=document.getElementById('userIdSelect'); s.innerHTML='<option>Loading...</option>'; document.getElementById('newCardNumber').value=''; const r=await fetch('/api/admin/users'); const u=await r.json(); s.innerHTML='<option disabled selected>Select User</option>'; u.forEach(x=>s.innerHTML+=`<option value="${x.id}">${x.username}</option>`); createModal.show(); }
+    function generateRandomCardNumber() { let p=Math.random()>0.5?"4000":"5100"; let r=""; for(let i=0;i<11;i++) r+=Math.floor(Math.random()*10); let n=p+r; let s=0,d=true; for(let i=n.length-1;i>=0;i--){let x=parseInt(n.charAt(i)); if(d){x*=2;if(x>9)x-=9;}s+=x;d=!d;} document.getElementById('newCardNumber').value=n+((10-(s%10))%10); }
+    async function submitCreateCard() { const u=document.getElementById('userIdSelect').value; const n=document.getElementById('newCardNumber').value; const h=document.getElementById('newCardHolder').value; const d=new Date(); d.setFullYear(d.getFullYear()+5); const res=await fetch('/api/admin/cards',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:parseInt(u),cardNumber:n,cardHolder:h.toUpperCase(),expiryDate:d.toISOString().split('T')[0],balance:0})}); if(res.ok){ createModal.hide(); loadCards(); document.getElementById('successCardNumber').innerText=n; document.getElementById('successCardHolder').innerText=h.toUpperCase(); successModal.show(); } }
     async function logout() { await fetch('/api/auth/logout', { method: 'POST' }); window.location.href = '/login'; }
 </script>
 </body>
@@ -7085,142 +7223,332 @@ server:
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>MyBank • Личный кабинет</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>MyBank • Ultimate Cyber</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Библиотеки -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- JS Libs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.3.0/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
 
     <style>
-        body { background: #f0f2f5; font-family: 'Segoe UI', Roboto, sans-serif; color: #444; overflow-x: hidden; }
+        :root {
+            --bg-dark: #050505;
+            --neon-blue: #00f2ff;
+            --neon-purple: #bc13fe;
+            --neon-green: #0aff60;
+            --glass-bg: rgba(20, 20, 20, 0.9); /* Более плотный фон для читаемости */
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --text-main: #ffffff;
+            --text-sec: #cccccc;
+        }
 
-        /* Карточки и Стекло */
+        body {
+            background-color: var(--bg-dark);
+            background-image:
+                    linear-gradient(rgba(0, 242, 255, 0.03) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0, 242, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* --- CRITICAL CONTRAST FIXES --- */
+        /* Принудительно красим весь текст в белый */
+        body, h1, h2, h3, h4, h5, h6, p, span, div, label, td, th, i { color: #ffffff !important; }
+        .text-muted { color: #aaaaaa !important; }
+        .text-dark { color: #ffffff !important; }
+        .text-info { color: var(--neon-blue) !important; }
+        .text-warning { color: #ffd700 !important; }
+        .text-danger { color: #ff4444 !important; }
+        .text-success { color: var(--neon-green) !important; }
+
+        /* Inputs & Selects - FORCE DARK */
+        .form-control, .form-select {
+            background-color: #111 !important;
+            border: 1px solid #444 !important;
+            color: #fff !important;
+            border-radius: 12px;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--neon-blue) !important;
+            background-color: #1a1a1a !important;
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.2) !important;
+            color: #fff !important;
+        }
+        .form-control::placeholder { color: #777 !important; }
+        select option { background-color: #000; color: #fff; }
+
+        /* Modals - FORCE DARK */
+        .modal-content {
+            background-color: #0f0f0f !important;
+            border: 1px solid var(--glass-border) !important;
+            color: #fff !important;
+            box-shadow: 0 0 50px rgba(0,0,0,0.9);
+        }
+        .modal-header, .modal-footer { border-color: #333 !important; }
+        .btn-close { filter: invert(1) !important; opacity: 1 !important; }
+
+        /* --- UI COMPONENTS --- */
         .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            border-radius: 24px;
-            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
-            transform-style: preserve-3d;
-            transform: perspective(1000px);
-            overflow: hidden;
-            min-height: 220px;
-            transition: transform 0.1s;
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border); border-radius: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+            transition: transform 0.3s, box-shadow 0.3s;
         }
+        .glass-card:hover { transform: translateY(-4px); box-shadow: 0 0 25px rgba(0, 242, 255, 0.1); border-color: rgba(255, 255, 255, 0.3); }
 
-        /* Статусы */
-        .status-badge-abs {
-            position: absolute; top: 20px; right: 20px;
-            font-size: 0.7rem; font-weight: 800; letter-spacing: 0.5px;
-            padding: 6px 12px; border-radius: 30px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 5; text-transform: uppercase;
-        }
-        .card-frozen { position: relative; }
-        .card-frozen::before {
-            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(220, 230, 240, 0.6); backdrop-filter: blur(2px) grayscale(0.8);
-            z-index: 1; pointer-events: none;
-        }
-        .frozen-icon {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            z-index: 2; color: #343a40; font-size: 4rem; opacity: 0.15; pointer-events: none;
-        }
-        .card-content-wrapper { position: relative; z-index: 3; }
+        .navbar-custom { background: rgba(5, 5, 5, 0.95); border-bottom: 1px solid var(--glass-border); z-index: 1000; }
 
-        /* 3D Карта в модалке */
-        .credit-card-wrap { perspective: 1000px; width: 340px; height: 215px; margin: 0 auto; cursor: pointer; }
-        .credit-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-style: preserve-3d; }
+        /* LIVE TICKER (FIXED) */
+        .ticker-wrap {
+            width: 100%; overflow: hidden; background: #000; border-bottom: 1px solid rgba(255,255,255,0.1); height: 36px;
+            display: flex; align-items: center; position: relative; z-index: 990;
+        }
+        .ticker { display: inline-block; white-space: nowrap; animation: ticker 40s linear infinite; }
+        .ticker-item {
+            display: inline-block; padding: 0 2rem; font-size: 0.85rem;
+            font-family: 'Space Mono', monospace; color: var(--neon-green) !important;
+        }
+        @keyframes ticker { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
+
+        /* Buttons */
+        .btn-primary {
+            background: linear-gradient(90deg, var(--neon-blue), #0077ff) !important; border: none;
+            color: #000 !important; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn-primary:hover { box-shadow: 0 0 25px rgba(0, 242, 255, 0.6); transform: scale(1.02); }
+        .btn-outline-light { border-color: rgba(255,255,255,0.3); color: #ccc !important; }
+        .btn-outline-light:hover { background: rgba(255,255,255,0.1); color: #fff !important; }
+
+        /* Quick Transfers */
+        .quick-avatar-wrap { text-align: center; cursor: pointer; transition: transform 0.2s; min-width: 60px; position: relative; }
+        .quick-avatar-wrap:hover { transform: scale(1.1); }
+        .quick-avatar-img { width: 50px; height: 50px; border-radius: 50%; background: #222; border: 2px solid var(--neon-blue); padding: 2px; }
+        .quick-avatar-add { width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 2px dashed #666; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: #aaa !important; transition: 0.3s; }
+        .quick-avatar-add:hover { border-color: var(--neon-blue); color: var(--neon-blue) !important; background: rgba(0, 242, 255, 0.1); }
+        .delete-quick { position: absolute; top: -2px; right: 0; font-size: 10px; color: white !important; background: #ff4444; border-radius: 50%; width: 18px; height: 18px; display: none; align-items: center; justify-content: center; border: 1px solid #fff; }
+        .quick-avatar-wrap:hover .delete-quick { display: flex; }
+
+        /* Avatar Main */
+        .cyber-avatar { width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--neon-blue); background: #000; cursor: pointer; transition: transform 0.3s; }
+        .cyber-avatar:hover { transform: scale(1.1) rotate(5deg); box-shadow: 0 0 15px var(--neon-blue); }
+
+        /* Table */
+        .table-custom { --bs-table-bg: transparent; --bs-table-color: #fff; }
+        .table-custom th { color: #aaa !important; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 15px; font-size: 0.75rem; text-transform: uppercase; }
+        .table-custom td { padding: 15px 0.5rem; vertical-align: middle; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .table-custom tbody tr:hover { background-color: rgba(255, 255, 255, 0.1); }
+
+        /* Matrix Rain Canvas */
+        #matrixCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -2; opacity: 0.07; pointer-events: none; }
+
+        /* Tier Badge */
+        .tier-badge {
+            background: #222; border: 1px solid rgba(255,255,255,0.2); color: #fff !important;
+            padding: 5px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .tier-elite { background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple)); border:none; box-shadow: 0 0 15px rgba(188, 19, 254, 0.5); }
+
+        /* Card 3D */
+        .credit-card-wrap { perspective: 1000px; width: 100%; max-width: 360px; height: 220px; margin: 0 auto; cursor: pointer; }
+        .credit-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.8s; transform-style: preserve-3d; }
         .credit-card-wrap.flipped .credit-card-inner { transform: rotateY(180deg); }
-        .credit-card-front, .credit-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); color: white; }
-        .credit-card-front { padding: 25px; display: flex; flex-direction: column; justify-content: space-between; background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); }
-        .credit-card-back { transform: rotateY(180deg); padding-top: 25px; background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%); }
+        .credit-card-front { background: linear-gradient(135deg, #111, #222); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); backface-visibility: hidden; display: flex; flex-direction: column; justify-content: space-between; }
+        .credit-card-back { background: #1a1a1a; padding-top: 25px; border-radius: 20px; backface-visibility: hidden; transform: rotateY(180deg); position: absolute; top:0; left:0; width:100%; height:100%; }
+        .card-bottom-row { margin-right: 60px; } /* Fix overlap */
+        .card-number { font-family: 'Space Mono', monospace; font-size: 1.4rem; letter-spacing: 2px; text-shadow: 0 0 8px rgba(255,255,255,0.4); text-align: left; margin-top: 10px; }
 
-        .card-number { font-family: 'Courier New', monospace; font-size: 1.45rem; letter-spacing: 2px; margin-top: 15px; cursor: copy; text-shadow: 0 2px 2px rgba(0,0,0,0.4); }
-        .card-holder { font-family: 'Courier New', monospace; }
-        .cvv-strip { background: #fff; color: #000; height: 40px; width: 100%; margin-top: 10px; padding-right: 15px; line-height: 40px; font-family: 'Courier New', monospace; font-size: 1.2rem; font-style: italic; text-align: right; }
-        .card-chip { width: 45px; height: 35px; background: linear-gradient(135deg, #e0e0e0 0%, #a0a0a0 100%); border-radius: 6px; position: relative; border: 1px solid rgba(0,0,0,0.2); }
+        /* Utils */
+        .money-font { font-family: 'Space Mono', monospace; letter-spacing: -0.5px; }
+        .blur-active .sensitive-data { filter: blur(8px); opacity: 0.6; }
+        .animate-up { animation: fadeInUp 0.6s ease-out forwards; opacity: 0; transform: translateY(20px); }
+        @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+        .delay-1 { animation-delay: 0.1s; } .delay-2 { animation-delay: 0.2s; } .delay-3 { animation-delay: 0.3s; }
+        .pulse-dot { display: inline-block; width: 8px; height: 8px; background: #0aff60; border-radius: 50%; animation: pulse-green 2s infinite; box-shadow: 0 0 10px #0aff60; }
+        @keyframes pulse-green { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-        /* Разное */
-        .skeleton { background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%); background-size: 200% 100%; animation: loading 1.5s infinite; border-radius: 4px; color: transparent !important; }
-        @keyframes loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-        .exchange-rate { font-weight: bold; font-family: 'Consolas', monospace; }
-        .rate-up { color: #28a745; } .rate-down { color: #dc3545; }
-        .toast-custom { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(33, 37, 41, 0.95); color: white; padding: 12px 25px; border-radius: 50px; z-index: 9999; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
-        .toast-custom.show { opacity: 1; }
-        .chart-container { position: relative; height: 220px; width: 100%; }
+        /* Dropdown Fix */
+        .dropdown-menu { background-color: #1a1a1a !important; border: 1px solid #444 !important; }
+        .dropdown-item { color: #fff !important; border-bottom: 1px solid #333; }
+        .dropdown-item:hover { background-color: #333 !important; }
     </style>
 </head>
-<body>
+<body id="appBody">
 
-<nav class="navbar navbar-expand-lg navbar-light bg-white px-4 py-3 shadow-sm sticky-top">
+<canvas id="matrixCanvas"></canvas>
+
+<nav class="navbar navbar-expand-lg navbar-dark navbar-custom px-4 py-3 sticky-top">
     <div class="container-fluid">
-        <a class="navbar-brand fw-bold text-primary fs-4" href="#"><i class="fas fa-layer-group me-2"></i>MyBank</a>
+        <a class="navbar-brand fw-bold fs-4 d-flex align-items-center gap-2" href="#">
+            <div class="d-flex align-items-center justify-content-center" style="width:32px; height:32px; background: var(--neon-blue); border-radius:8px; color:black;">
+                <i class="fas fa-bolt text-dark"></i>
+            </div>
+            <span style="letter-spacing: -0.5px;">CYBER<span style="color: var(--neon-blue) !important">BANK</span></span>
+        </a>
+
         <div class="d-flex align-items-center gap-3">
-            <div class="d-none d-md-flex align-items-center px-3 py-2 bg-light rounded-pill border">
-                <small class="text-muted text-uppercase fw-bold me-2">Total</small>
-                <span class="fw-bold text-dark" id="navTotalBalance"><span class="skeleton">00000</span></span>
-            </div>
-            <div class="dropdown">
-                <button class="btn btn-light rounded-circle position-relative shadow-sm" type="button" data-bs-toggle="dropdown" onclick="markNotificationsRead()">
-                    <i class="far fa-bell"></i>
-                    <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle d-none"></span>
+            <button class="btn btn-sm btn-outline-light rounded-pill px-3 border-secondary" onclick="openSupportModal()">
+                <i class="fas fa-headset me-2"></i>Help
+            </button>
+
+            <div class="d-none d-md-flex align-items-center px-3 py-2 rounded-pill" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">
+                <span class="fw-bold money-font sensitive-data text-white" id="navTotalBalance">--.--</span>
+                <span class="ms-1 text-info small">BYN</span>
+                <button class="btn btn-link btn-sm text-white ms-2 p-0 opacity-75 hover-opacity-100" onclick="togglePrivacy()" title="Скрыть суммы">
+                    <i class="fas fa-eye" id="privacyIcon"></i>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-2" id="notifList" style="width: 320px; max-height: 400px; overflow-y: auto;"><li><span class="dropdown-item-text text-muted small">Нет уведомлений</span></li></ul>
             </div>
-            <button onclick="logout()" class="btn btn-outline-danger btn-sm rounded-pill px-4 fw-bold">Выход</button>
+
+            <div class="dropdown">
+                <button class="btn btn-dark rounded-circle position-relative border border-secondary d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;" data-bs-toggle="dropdown" onclick="markNotificationsRead()">
+                    <i class="far fa-bell text-white"></i>
+                    <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-dark rounded-circle d-none"></span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-lg" id="notifList">
+                    <li><span class="dropdown-item text-muted text-center py-3">Нет новых уведомлений</span></li>
+                </ul>
+            </div>
+
+            <img id="userAvatar" src="" class="cyber-avatar" title="Ваш профиль">
+
+            <button onclick="logout()" class="btn btn-outline-danger btn-sm rounded-pill px-4 fw-bold">EXIT</button>
         </div>
     </div>
 </nav>
 
+<!-- LIVE TICKER -->
+<div class="ticker-wrap">
+    <div class="ticker">
+        <span class="ticker-item">USD/BYN: <span id="tick-usd" class="text-white">...</span></span>
+        <span class="ticker-item">EUR/BYN: <span id="tick-eur" class="text-white">...</span></span>
+        <span class="ticker-item">RUB/BYN: <span id="tick-rub" class="text-white">...</span></span>
+        <span class="ticker-item text-info">BTC: $98,150 ▲</span>
+        <span class="ticker-item text-info">ETH: $3,520 ▼</span>
+        <span class="ticker-item text-warning">MYBANK: ONLINE</span>
+    </div>
+</div>
+
 <div class="container py-5">
-    <div class="row g-4 mb-5">
+    <div class="row mb-5 align-items-end animate-up">
         <div class="col-lg-8">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div><h2 class="fw-bold mb-0">Мои Финансы</h2><p class="text-muted">Управление картами</p></div>
-                <button onclick="openTransferModal()" class="btn btn-primary btn-lg rounded-pill shadow-lg px-4"><i class="fas fa-paper-plane me-2"></i>Перевести</button>
+            <div class="d-flex align-items-center gap-3 mb-1">
+                <h1 class="fw-bold mb-0 display-5" id="greetingText">Dashboard</h1>
+                <span class="tier-badge" id="userTierBadge">LOADING...</span>
             </div>
-            <div id="cardsList" class="row g-4">
-                <div class="col-md-6"><div class="glass-card h-100 p-4"><div class="skeleton w-50 mb-4" style="height:20px;"></div><div class="skeleton w-75 mb-3" style="height:30px;"></div></div></div>
+            <p class="text-muted fs-6 mb-0" id="currentDateDisplay">Загрузка даты...</p>
+            <div class="mt-2 small text-muted"><i class="fas fa-keyboard me-1"></i> Hotkeys: <span class="badge bg-secondary border border-light text-white">T</span> Transfer <span class="badge bg-secondary border border-light text-white">H</span> History</div>
+        </div>
+        <div class="col-lg-4 text-lg-end">
+            <button onclick="openTransferModal()" class="btn btn-lg rounded-pill shadow-lg px-5 w-100 w-lg-auto fw-bold btn-primary">
+                <i class="fas fa-paper-plane me-2"></i>ПЕРЕВОД
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <!-- Cards List -->
+        <div class="col-lg-8" id="cardsList">
+            <div class="glass-card p-5 text-center text-muted">
+                <div class="spinner-border text-info mb-3" role="status"></div>
+                <div>Загрузка данных...</div>
             </div>
         </div>
 
+        <!-- Sidebar -->
         <div class="col-lg-4">
-            <div class="row g-4">
-                <div class="col-12">
-                    <div class="glass-card p-4 js-tilt">
-                        <h5 class="fw-bold mb-4 text-secondary"><i class="fas fa-chart-pie me-2"></i>Аналитика</h5>
-                        <div class="chart-container d-flex align-items-center justify-content-center"><canvas id="financeChart"></canvas></div>
+
+            <!-- Quick Transfer (Backend) -->
+            <div class="glass-card p-4 mb-4 animate-up delay-1">
+                <h6 class="text-uppercase text-muted mb-3 fw-bold small"><i class="fas fa-bolt me-2 text-warning"></i>Быстрый перевод</h6>
+                <div class="d-flex gap-3 overflow-x-auto pb-2 align-items-start" id="quickTransferList">
+                    <div class="text-center text-muted w-100 py-2 small">Загрузка...</div>
+                </div>
+            </div>
+
+            <!-- Spending Limit -->
+            <div class="glass-card p-4 mb-4 animate-up delay-1">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="text-uppercase text-muted mb-0 fw-bold small"><i class="fas fa-wallet me-2"></i>Лимит (Мес.)</h6>
+                    <span class="badge bg-dark border border-secondary sensitive-data text-white" id="spendingAmount">0 BYN</span>
+                </div>
+                <div class="progress mb-2" style="height: 6px; background: rgba(255,255,255,0.1);">
+                    <div class="progress-bar bg-info" id="spendingBar" style="width: 0%;"></div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted" style="font-size: 0.7rem;" id="spendingPercent">0%</small>
+                    <div class="d-flex align-items-center">
+                        <small class="text-muted sensitive-data me-2" style="font-size: 0.7rem;">Макс: <span id="limitDisplay">...</span> BYN</small>
+                        <button class="btn btn-link btn-sm p-0 text-info" onclick="changeLimit()" title="Изменить">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
                     </div>
                 </div>
-                <div class="col-12">
-                    <div class="glass-card p-4 js-tilt">
-                        <h5 class="fw-bold mb-3 text-secondary"><i class="fas fa-globe me-2"></i>Курсы ЦБ РФ</h5>
-                        <div class="d-flex justify-content-between mb-2 border-bottom pb-2"><div class="d-flex align-items-center"><img src="https://flagcdn.com/w20/us.png" class="me-2"> USD</div><span class="exchange-rate" id="rate-usd">...</span></div>
-                        <div class="d-flex justify-content-between mb-2 border-bottom pb-2"><div class="d-flex align-items-center"><img src="https://flagcdn.com/w20/eu.png" class="me-2"> EUR</div><span class="exchange-rate" id="rate-eur">...</span></div>
-                        <div class="d-flex justify-content-between"><div class="d-flex align-items-center"><img src="https://flagcdn.com/w20/cn.png" class="me-2"> CNY</div><span class="exchange-rate" id="rate-cny">...</span></div>
+            </div>
+
+            <!-- Analytics -->
+            <div class="glass-card p-4 mb-4 animate-up delay-2 js-tilt">
+                <h6 class="text-uppercase text-muted mb-3 fw-bold small"><i class="fas fa-chart-pie me-2"></i>Статистика</h6>
+                <div style="height: 180px; position: relative;">
+                    <canvas id="financeChart"></canvas>
+                    <div id="chartCenterText" class="d-none" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none;">
+                        <small class="text-muted text-uppercase" style="font-size: 0.6rem;">Статус</small>
+                        <div class="fw-bold text-white">Active</div>
                     </div>
+                    <div id="chartNoData" class="d-none" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; width: 100%;">
+                        <i class="fas fa-ban fa-2x mb-2 text-muted opacity-50"></i>
+                        <div class="small text-muted">Нет данных</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rates -->
+            <div class="glass-card p-4 animate-up delay-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="text-uppercase text-muted mb-0 fw-bold small"><i class="fas fa-globe me-2"></i>Рынок (NBRB)</h6>
+                    <div class="pulse-dot"></div>
+                </div>
+                <div class="d-flex justify-content-between mb-2 p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                    <div class="d-flex align-items-center gap-2"><img src="https://flagcdn.com/w20/us.png" class="rounded-circle" width="20"><span class="fw-bold text-white">USD</span></div>
+                    <span class="money-font text-info" id="rate-usd">...</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2 p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                    <div class="d-flex align-items-center gap-2"><img src="https://flagcdn.com/w20/eu.png" class="rounded-circle" width="20"><span class="fw-bold text-white">EUR</span></div>
+                    <span class="money-font text-info" id="rate-eur">...</span>
+                </div>
+                <div class="d-flex justify-content-between p-2 rounded" style="background: rgba(255,255,255,0.05);">
+                    <div class="d-flex align-items-center gap-2"><img src="https://flagcdn.com/w20/ru.png" class="rounded-circle" width="20"><span class="fw-bold text-white">RUB</span></div>
+                    <span class="money-font text-info" id="rate-rub">...</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row">
+    <!-- History -->
+    <div class="row animate-up delay-3">
         <div class="col-12">
             <div class="glass-card p-4">
-                <h5 class="fw-bold text-secondary mb-4"><i class="fas fa-history me-2"></i>История операций</h5>
-                <div class="btn-group btn-group-sm shadow-sm mb-3">
-                    <button class="btn btn-outline-secondary active" onclick="filterHistory('all')">Все</button>
-                    <button class="btn btn-outline-secondary" onclick="filterHistory('in')">Входящие</button>
-                    <button class="btn btn-outline-secondary" onclick="filterHistory('out')">Исходящие</button>
-                </div>
+                <h5 class="mb-4 fw-bold text-white">Последние транзакции</h5>
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                        <tr class="text-uppercase small text-muted"><th class="ps-4">Тип</th><th>Детали</th><th>Дата</th><th class="text-end pe-4">Сумма</th></tr>
+                    <table class="table table-custom align-middle mb-0">
+                        <thead>
+                        <tr>
+                            <th class="ps-3">Тип</th>
+                            <th>Описание</th>
+                            <th>Дата</th>
+                            <th class="text-end pe-3">Сумма (BYN)</th>
+                        </tr>
                         </thead>
-                        <tbody id="historyList" class="border-top-0"><tr><td colspan="4" class="text-center py-5 text-muted">Загрузка...</td></tr></tbody>
+                        <tbody id="historyList"><tr><td colspan="4" class="text-center py-4 text-muted">Загрузка...</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -7228,435 +7556,303 @@ server:
     </div>
 </div>
 
-<!-- Модалка просмотра карты -->
-<div class="modal fade" id="viewCardModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content bg-transparent border-0">
-            <div class="modal-body text-center">
-                <div class="credit-card-wrap" onclick="this.classList.toggle('flipped')">
-                    <div class="credit-card-inner">
-                        <div class="credit-card-front">
-                            <div class="d-flex justify-content-between align-items-center"><div class="card-chip"></div><i class="fas fa-wifi fa-lg opacity-75"></i></div>
-                            <div class="card-number" id="modalCardNumber" onclick="copyCardNumber(event)">####</div>
-                            <div class="d-flex justify-content-between align-items-end mt-auto">
-                                <div class="text-start"><div class="small opacity-75" style="font-size:0.65rem;">Card Holder</div><div class="card-holder" id="modalCardHolder">NAME</div></div>
-                                <div class="text-end"><div class="small opacity-75" style="font-size:0.65rem;">Expires</div><div class="card-holder" id="modalCardExpiry">MM/YY</div></div>
-                            </div>
-                            <img id="modalCardLogo" class="card-logo" src="" style="position:absolute;bottom:20px;right:20px;width:50px;">
-                        </div>
-                        <div class="credit-card-back">
-                            <div class="magnetic-strip"></div>
-                            <div style="text-align:right;padding-right:15px;font-size:0.7rem;color:white;">CVV</div>
-                            <div class="cvv-strip" id="modalCardCvv">000</div>
-                            <div class="mt-3 opacity-50 small text-white">Authorized Signature</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-4 glass-card p-3 d-inline-block text-dark" style="min-width:300px;">
-                    <h3 class="fw-bold text-primary mb-1" id="modalCardBalance">₽0.00</h3>
-                    <div class="mb-3 small text-muted" id="modalCardStatus">ACTIVE</div>
-                    <div id="modalActions" class="d-flex gap-2 justify-content-center"></div>
-                    <button class="btn btn-light btn-sm rounded-pill px-4 mt-3" data-bs-dismiss="modal">Закрыть</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Modal: View Card -->
+<div class="modal fade" id="viewCardModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-body text-center p-4"><div class="credit-card-wrap" onclick="this.classList.toggle('flipped')"><div class="credit-card-inner"><div class="credit-card-front"><div class="d-flex justify-content-between align-items-center"><div class="card-chip" style="width:45px;height:35px;background:linear-gradient(135deg,#d4af37,#f9d976);border-radius:6px;box-shadow:inset 0 1px 3px rgba(0,0,0,0.3);"></div><i class="fas fa-wifi fa-lg opacity-75"></i></div><div class="card-number mt-3 sensitive-data" id="modalCardNumber" onclick="copyCardNumber(event)" style="cursor:copy">####</div><div class="d-flex justify-content-between align-items-end mt-auto card-bottom-row"><div class="text-start"><div class="small opacity-50" style="font-size:0.6rem;">HOLDER</div><div class="card-holder text-uppercase" id="modalCardHolder">NAME</div></div><div class="text-end"><div class="small opacity-50" style="font-size:0.6rem;">EXPIRES</div><div class="card-holder sensitive-data" id="modalCardExpiry">MM/YY</div></div></div><img id="modalCardLogo" src="" style="position:absolute;bottom:20px;right:20px;width:50px;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.5));"></div><div class="credit-card-back"><div style="background:#000;height:45px;width:100%;margin-top:20px;"></div><div class="d-flex justify-content-end px-4 mt-3"><div class="bg-white text-dark d-flex align-items-center justify-content-end px-2 sensitive-data" style="width:60px;height:30px;font-family:'Space Mono';font-style:italic;" id="modalCardCvv">000</div></div></div></div></div><div class="mt-4"><h2 class="fw-bold text-info money-font mb-1 sensitive-data" id="modalCardBalance">0.00 BYN</h2><div class="mb-4 small text-muted" id="modalCardStatus">ACTIVE</div><div id="modalActions" class="d-grid gap-2 col-8 mx-auto"></div></div></div></div></div></div>
+<div class="modal fade" id="transferModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title fw-bold">Перевод средств</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body p-4"><form id="transferForm"><div class="mb-3"><label class="small text-muted mb-1">С карты</label><select id="transferFromCard" class="form-select"></select></div><div class="d-flex bg-dark rounded p-1 mb-3 border border-secondary"><button type="button" class="btn btn-sm flex-fill text-white" id="btnTypeOthers" onclick="toggleTransferType('others')" style="background: rgba(255,255,255,0.1)">Клиенту</button><button type="button" class="btn btn-sm flex-fill text-muted" id="btnTypeSelf" onclick="toggleTransferType('self')">Свои счета</button></div><div class="mb-3"><label class="small text-muted mb-1">Получатель</label><div id="targetInputContainer"><input type="text" id="transferToCardInput" class="form-control money-font" placeholder="0000 0000 0000 0000" maxlength="19"></div><div id="targetSelectContainer" class="d-none"><select id="transferToCardSelect" class="form-select"></select></div></div><div class="mb-4"><label class="small text-muted mb-1">Сумма (BYN)</label><input type="number" id="transferAmount" class="form-control fs-4 fw-bold text-info money-font" placeholder="0.00"></div><button type="button" class="btn btn-primary w-100 rounded-pill py-2" onclick="submitTransfer()">Отправить</button></form></div></div></div></div>
+<div class="modal fade" id="supportModal" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title fw-bold">Поддержка</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body p-0"><div class="row g-0"><div class="col-md-5 border-end border-secondary" style="height: 400px; overflow-y: auto;"><div class="p-3 border-bottom border-secondary bg-dark sticky-top d-flex justify-content-between"><span class="small fw-bold text-muted">ИСТОРИЯ</span><button class="btn btn-sm btn-link text-info p-0" onclick="loadMyTickets()"><i class="fas fa-sync"></i></button></div><div id="ticketsList" class="list-group list-group-flush"></div></div><div class="col-md-7 p-4"><h6 class="fw-bold mb-3">Новый вопрос</h6><input type="text" id="ticketSubject" class="form-control mb-3" placeholder="Тема"><textarea id="ticketDesc" class="form-control mb-3" rows="6" placeholder="Описание проблемы..."></textarea><div class="text-end"><button type="button" class="btn btn-primary px-4 rounded-pill" onclick="createTicket()">Создать</button></div></div></div></div></div></div></div>
+<div id="copyToast" class="position-fixed bottom-0 start-50 translate-middle-x mb-4 bg-white text-dark px-4 py-2 rounded-pill fw-bold opacity-0 shadow-lg" style="z-index: 9999; transition: opacity 0.3s; border: 1px solid var(--neon-blue);"><i class="fas fa-check-circle text-success me-2"></i>Скопировано в буфер</div>
 
-<!-- Модалка перевода -->
-<div class="modal fade" id="transferModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 rounded-4 shadow-lg">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold">Перевод средств</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4">
-                <form id="transferForm">
-                    <div class="mb-4">
-                        <label class="form-label text-uppercase small fw-bold text-muted">Откуда</label>
-                        <select id="transferFromCard" class="form-select form-select-lg bg-light border-0" onchange="updateMyCardsTarget()"></select>
-                    </div>
-                    <div class="d-flex bg-light p-1 rounded-pill mb-4">
-                        <button type="button" class="btn btn-sm rounded-pill flex-fill fw-bold shadow-sm bg-white transition" id="btnTypeOthers" onclick="toggleTransferType('others')">Другому</button>
-                        <button type="button" class="btn btn-sm rounded-pill flex-fill fw-bold text-muted transition" id="btnTypeSelf" onclick="toggleTransferType('self')">Между своими</button>
-                    </div>
-                    <div class="mb-4">
-                        <label class="form-label text-uppercase small fw-bold text-muted">Куда</label>
-                        <div id="targetInputContainer">
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text border-0 bg-light"><i class="far fa-credit-card"></i></span>
-                                <input type="text" id="transferToCardInput" class="form-control bg-light border-0" placeholder="0000 0000 0000 0000" maxlength="19">
-                            </div>
-                        </div>
-                        <div id="targetSelectContainer" class="d-none">
-                            <select id="transferToCardSelect" class="form-select form-select-lg bg-light border-0"></select>
-                        </div>
-                    </div>
-                    <div class="mb-4">
-                        <label class="form-label text-uppercase small fw-bold text-muted">Сумма (₽)</label>
-                        <div class="input-group input-group-lg">
-                            <span class="input-group-text border-0 bg-light fw-bold">₽</span>
-                            <input type="number" id="transferAmount" class="form-control bg-light border-0 fw-bold" placeholder="0.00" min="1" step="0.01">
-                        </div>
-                    </div>
-                    <button type="button" class="btn btn-primary w-100 btn-lg rounded-pill shadow-sm fw-bold" onclick="submitTransfer()">Отправить</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="copyToast" class="toast-custom"><i class="fas fa-check-circle text-success"></i> Номер скопирован</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    let viewModal, transferModal, financeChart;
+    let viewModal, transferModal, supportModal, financeChart;
     const VISA_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/1200px-Visa_Inc._logo.svg.png";
     const MC_LOGO = "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Mastercard-logo.svg/1280px-Mastercard-logo.svg.png";
-    let myCards = [], allTransactions = [], transferMode = 'others';
+    let myCards = [], allTransactions = [], transferMode = 'others', currentRates = { USD: 0, EUR: 0, RUB: 0 }, isPrivacyOn = false, currentExpenses = 0, monthlyLimit = 5000;
 
     document.addEventListener('DOMContentLoaded', () => {
+        if (typeof bootstrap === 'undefined') return;
         viewModal = new bootstrap.Modal(document.getElementById('viewCardModal'));
         transferModal = new bootstrap.Modal(document.getElementById('transferModal'));
+        supportModal = new bootstrap.Modal(document.getElementById('supportModal'));
+        try { VanillaTilt.init(document.querySelectorAll(".js-tilt")); } catch(e) {}
 
-        // Безопасная инициализация Tilt
-        try { VanillaTilt.init(document.querySelectorAll(".js-tilt")); } catch(e) { console.warn("Tilt lib not loaded"); }
+        // Hotkeys
+        document.addEventListener('keydown', (e) => {
+            if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if(e.key.toLowerCase() === 't') openTransferModal();
+            if(e.key.toLowerCase() === 'h') { document.getElementById('historyList').scrollIntoView({behavior: 'smooth'}); }
+        });
 
-        setTimeout(() => { loadData(); loadNotifications(); }, 500);
-        fetchRealRates();
+        initMatrix();
+        updateGreeting();
+        loadProfileAndData();
+        loadNotifications();
+        loadQuickTransfers(); // Load from BACKEND
+        fetchNBRBRates();
     });
 
+    // --- QUICK TRANSFER LOGIC (BACKEND INTEGRATION) ---
+    async function loadQuickTransfers() {
+        const list = document.getElementById('quickTransferList');
+        try {
+            const res = await fetch('/api/user/quick-transfers');
+            if(res.ok) {
+                const data = await res.json();
+                renderQuickTransfers(data);
+            } else {
+                renderQuickTransfers([]);
+            }
+        } catch(e) { console.error("QT Error", e); }
+    }
+
+    function renderQuickTransfers(transfers) {
+        const list = document.getElementById('quickTransferList');
+        list.innerHTML = '';
+
+        transfers.forEach(qt => {
+            const avatarUrl = `https://robohash.org/${qt.name}?set=set1&bgset=bg2`;
+            const item = document.createElement('div');
+            item.className = 'quick-avatar-wrap';
+            item.innerHTML = `
+                <img src="${avatarUrl}" class="quick-avatar-img">
+                <span class="quick-avatar-name">${qt.name}</span>
+                <i class="fas fa-times delete-quick" onclick="deleteQuickTransfer(${qt.id}, event)"></i>
+            `;
+            item.onclick = (e) => {
+                if(!e.target.classList.contains('delete-quick')) {
+                    openQuickTransfer(qt.cardNumber);
+                }
+            };
+            list.appendChild(item);
+        });
+
+        // Add Button
+        const addButton = document.createElement('div');
+        addButton.className = 'quick-avatar-wrap';
+        addButton.innerHTML = `<div class="quick-avatar-add"><i class="fas fa-plus"></i></div><span class="quick-avatar-name" style="color:var(--neon-blue)">New</span>`;
+        addButton.onclick = addQuickTransfer;
+        list.appendChild(addButton);
+    }
+
+    async function addQuickTransfer() {
+        const name = prompt("Имя контакта:");
+        if (!name) return;
+        const card = prompt("Номер карты:");
+        if (!card || card.length < 16) { alert("Некорректный номер"); return; }
+
+        try {
+            const res = await fetch('/api/user/quick-transfers', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: name, cardNumber: card})
+            });
+            if(res.ok) { loadQuickTransfers(); } else { alert("Ошибка сохранения"); }
+        } catch(e) { alert("Ошибка сети"); }
+    }
+
+    async function deleteQuickTransfer(id, e) {
+        e.stopPropagation();
+        if(confirm("Удалить контакт?")) {
+            try {
+                await fetch(`/api/user/quick-transfers/${id}`, { method: 'DELETE' });
+                loadQuickTransfers();
+            } catch(e) { alert("Ошибка удаления"); }
+        }
+    }
+
+    function openQuickTransfer(cardNumber) {
+        openTransferModal();
+        toggleTransferType('others');
+        document.getElementById('transferToCardInput').value = cardNumber;
+    }
+
+    // --- MAIN LOGIC ---
+    async function loadProfileAndData() {
+        try {
+            const profileRes = await fetch('/api/user/profile');
+            if (profileRes.ok) {
+                const profile = await profileRes.json();
+                document.getElementById('userAvatar').src = profile.avatarUrl;
+                monthlyLimit = profile.monthlyLimit || 5000;
+                document.getElementById('limitDisplay').innerText = monthlyLimit;
+            }
+            loadData();
+        } catch(e) { console.error("Profile load error", e); }
+    }
+
+    async function changeLimit() {
+        const newLimit = prompt("Установите лимит трат на месяц (BYN):", monthlyLimit);
+        if (newLimit !== null && newLimit.trim() !== "") {
+            const parsed = parseFloat(newLimit);
+            if (!isNaN(parsed) && parsed >= 0) {
+                try {
+                    const res = await fetch('/api/user/profile/limit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ limit: parsed }) });
+                    if (res.ok) { monthlyLimit = parsed; document.getElementById('limitDisplay').innerText = monthlyLimit; updateSpendingWidget(currentExpenses); alert("Лимит обновлен!"); }
+                    else { alert("Ошибка сохранения"); }
+                } catch(e) { alert("Ошибка сети"); }
+            } else { alert("Введите корректное число."); }
+        }
+    }
+
+    function togglePrivacy() {
+        isPrivacyOn = !isPrivacyOn;
+        const body = document.body;
+        const icon = document.getElementById('privacyIcon');
+        if (isPrivacyOn) { body.classList.add('blur-active'); icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
+        else { body.classList.remove('blur-active'); icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
+    }
+
+    function updateGreeting() {
+        const now = new Date(); const h = now.getHours(); const t = document.getElementById('greetingText');
+        if(h<6) t.innerText='Доброй ночи'; else if(h<12) t.innerText='Доброе утро'; else if(h<18) t.innerText='Добрый день'; else t.innerText='Добрый вечер';
+        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        document.getElementById('currentDateDisplay').innerText = now.toLocaleDateString('ru-RU', dateOptions);
+    }
+
+    function updateUserTier(balance) {
+        const badge = document.getElementById('userTierBadge');
+        badge.className = 'tier-badge';
+        if (balance > 10000) { badge.innerText = 'CYBER ELITE'; badge.classList.add('tier-elite'); }
+        else if (balance > 1000) { badge.innerText = 'PLATINUM'; badge.classList.add('tier-platinum'); }
+        else if (balance > 100) { badge.innerText = 'GOLD'; badge.classList.add('tier-gold'); }
+        else { badge.innerText = 'STANDARD'; }
+    }
+
     async function loadData() {
+        const container = document.getElementById('cardsList');
         try {
             const balRes = await fetch('/api/user/cards/balance');
-            if (balRes.status === 401) { window.location.href = '/login'; return; }
+            if (balRes.status === 401 || balRes.status === 403) { window.location.href = '/login'; return; }
             const bal = await balRes.json();
             animateValue("navTotalBalance", 0, bal || 0, 1000);
+            updateUserTier(bal || 0);
 
             const cardRes = await fetch('/api/user/cards?page=0&size=50');
             const data = await cardRes.json();
             myCards = data.content;
-            const container = document.getElementById('cardsList');
-            container.innerHTML = '';
 
             if (!myCards || myCards.length === 0) {
-                container.innerHTML = '<div class="col-12 text-center py-5 text-muted">У вас пока нет карт</div>';
-                document.getElementById('historyList').innerHTML = '<tr><td colspan="4" class="text-center py-5 text-muted">Пусто</td></tr>';
-                return;
+                container.innerHTML = '<div class="glass-card p-5 text-center text-muted">Нет активных карт</div>';
+                loadHistory(); return;
             }
 
-            myCards.forEach(card => {
-                const firstDigit = card.cardNumber.trim().charAt(0);
-                const logoClass = (firstDigit === '5') ? 'fa-cc-mastercard' : 'fa-cc-visa';
-
-                let statusBadgeColor = 'bg-secondary';
-                let statusClass = 'js-tilt';
-                let overlayIcon = '';
-                let statusText = card.cardStatus.replace('_', ' ');
-
-                if (card.cardStatus === 'ACTIVE') {
-                    statusBadgeColor = 'bg-success';
-                } else if (card.cardStatus === 'BLOCKED') {
-                    statusBadgeColor = 'bg-dark';
-                    statusClass += ' card-frozen';
-                    overlayIcon = '<i class="fas fa-lock frozen-icon"></i>';
-                } else if (card.cardStatus.includes('PENDING')) {
-                    statusBadgeColor = 'bg-warning text-dark';
-                    overlayIcon = '<i class="fas fa-hourglass-half frozen-icon"></i>';
-                }
-
-                container.innerHTML += `
-                    <div class="col-md-6 col-lg-6">
-                        <div class="glass-card h-100 card-item p-4 position-relative ${statusClass}"
-                             onclick="openCardModal('${card.id}')"
-                             data-tilt data-tilt-max="8" data-tilt-speed="400" data-tilt-glare data-tilt-max-glare="0.2">
-
-                            ${overlayIcon}
-                            <span class="badge ${statusBadgeColor} status-badge-abs">${statusText}</span>
-
-                            <div class="card-content-wrapper">
-                                <div class="d-flex align-items-start mb-4">
-                                    <div class="rounded-circle bg-white shadow-sm d-flex align-items-center justify-content-center" style="width:50px;height:50px;">
-                                        <i class="fab ${logoClass} fa-lg text-dark"></i>
-                                    </div>
-                                </div>
-                                <h5 class="font-monospace mb-1 text-dark fw-bold" style="letter-spacing:1px; transform: translateZ(20px)">${card.cardNumber}</h5>
-                                <h3 class="fw-bold text-primary mb-0 mt-3" style="transform: translateZ(20px)">₽${card.balance.toFixed(2)}</h3>
-                            </div>
-                        </div>
-                    </div>`;
-            });
-
-            try { VanillaTilt.init(document.querySelectorAll(".js-tilt")); } catch(e){}
+            let html = '';
+            for (let i = 0; i < myCards.length; i += 2) {
+                html += '<div class="row g-4 mb-4">';
+                html += generateCardHtml(myCards[i], i);
+                if (i + 1 < myCards.length) html += generateCardHtml(myCards[i+1], i+1);
+                html += '</div>';
+            }
+            container.innerHTML = html;
             loadHistory();
-        } catch(e) {
-            console.error("Ошибка загрузки данных:", e);
-            document.getElementById('cardsList').innerHTML = '<div class="col-12 text-center text-danger">Ошибка загрузки данных</div>';
-        }
+        } catch(e) { container.innerHTML = '<div class="glass-card p-5 text-center text-danger">Ошибка</div>'; }
     }
 
-    function openCardModal(id) {
-        const card = myCards.find(c => c.id == id);
-        if(!card) return;
-        document.getElementById('modalCardNumber').innerText = card.cardNumber;
-        document.getElementById('modalCardHolder').innerText = card.cardHolder;
-        if(card.expiryDate) document.getElementById('modalCardExpiry').innerText = card.expiryDate.split('-')[1] + '/' + card.expiryDate.split('-')[0].slice(-2);
-        document.getElementById('modalCardBalance').innerText = '₽'+card.balance.toFixed(2);
-        document.getElementById('modalCardCvv').innerText = Math.floor(Math.random()*899)+100;
-        document.getElementById('modalCardLogo').src = card.cardNumber.trim().startsWith('5') ? MC_LOGO : VISA_LOGO;
-        document.getElementById('modalCardStatus').innerText = "Статус: " + card.cardStatus.replace('_', ' ');
-
-        const actionsDiv = document.getElementById('modalActions');
-        actionsDiv.innerHTML = '';
-
-        if (card.cardStatus === 'ACTIVE') {
-            actionsDiv.innerHTML = `<button onclick="sendRequest('${card.id}', 'block')" class="btn btn-danger rounded-pill w-100 shadow-sm"><i class="fas fa-lock me-2"></i>Заблокировать</button>`;
-        } else if (card.cardStatus === 'BLOCKED') {
-            actionsDiv.innerHTML = `<button onclick="sendRequest('${card.id}', 'unblock')" class="btn btn-success rounded-pill w-100 shadow-sm"><i class="fas fa-unlock me-2"></i>Запросить разблокировку</button>`;
-        } else {
-            actionsDiv.innerHTML = `<button class="btn btn-secondary rounded-pill w-100 disabled"><i class="fas fa-clock me-2"></i>Заявка отправлена</button>`;
-        }
-
-        viewModal.show();
+    function generateCardHtml(card, index) {
+        const firstDigit = card.cardNumber.trim().charAt(0);
+        const logoClass = (firstDigit === '5') ? 'fa-cc-mastercard' : 'fa-cc-visa';
+        let opacity = card.cardStatus === 'ACTIVE' ? '1' : '0.6';
+        let glow = card.cardStatus === 'ACTIVE' ? 'box-shadow: 0 0 15px rgba(0, 242, 255, 0.1);' : '';
+        let badgeColor = card.cardStatus === 'ACTIVE' ? 'bg-success' : 'bg-danger';
+        return `
+            <div class="col-md-6 animate-up delay-${(index % 3) + 1}">
+                <div class="glass-card h-100 p-4 position-relative cursor-pointer" onclick="openCardModal('${card.id}')" style="opacity:${opacity}; ${glow}">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <i class="fab ${logoClass} fa-2x text-white"></i>
+                        <span class="badge ${badgeColor}">${card.cardStatus}</span>
+                    </div>
+                    <h5 class="font-monospace mb-2 text-white fw-bold sensitive-data" style="letter-spacing:2px; text-shadow: 0 0 5px rgba(255,255,255,0.3)">
+                        **** ${card.cardNumber.slice(-4)}
+                    </h5>
+                    <div class="mt-3">
+                        <span class="text-muted small text-uppercase" style="font-size: 0.65rem; letter-spacing: 1px;">Баланс</span>
+                        <h3 class="fw-bold text-white mb-0 money-font sensitive-data">${card.balance.toFixed(2)} <span class="fs-6 text-info">BYN</span></h3>
+                    </div>
+                </div>
+            </div>`;
     }
 
-    async function sendRequest(id, type) {
-        if (!confirm(`Отправить запрос на ${type === 'block' ? 'блокировку' : 'разблокировку'}?`)) return;
-        try {
-            const res = await fetch(`/api/user/cards/${type}/${id}`, { method: 'POST' });
-            if (res.ok) {
-                alert('Запрос отправлен!');
-                viewModal.hide();
-                loadData();
-            } else {
-                const err = await res.json();
-                alert('Ошибка: ' + err.message);
-            }
-        } catch (e) { alert('Ошибка сети'); }
-    }
-
-    // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
-
-    // История операций
     async function loadHistory() {
+        const tbody = document.getElementById('historyList');
         try {
-            const res = await fetch('/api/user/transfers/my');
-            if(res.ok) {
-                const list = await res.json();
+            const r = await fetch('/api/user/transfers/my');
+            if (r.ok) {
+                const l = await r.json();
                 allTransactions = [];
-                let income = 0, expense = 0;
-
-                list.forEach(t => {
+                let inc = 0, exp = 0;
+                l.forEach(t => {
                     const isMineSender = myCards.some(c => c.cardNumber.endsWith(t.fromCardNumber.slice(-4)));
                     const isMineReceiver = myCards.some(c => c.cardNumber.endsWith(t.toCardNumber.slice(-4)));
-
-                    if (isMineSender) {
-                        allTransactions.push({type: 'out', otherParty: t.toCardNumber, date: t.transferDate, amount: t.amount, desc: 'Перевод'});
-                        expense += t.amount;
-                    }
-                    if (isMineReceiver) {
-                        allTransactions.push({type: 'in', otherParty: t.fromCardNumber, date: t.transferDate, amount: t.amount, desc: 'Пополнение'});
-                        income += t.amount;
+                    if (isMineSender && isMineReceiver) {
+                        allTransactions.push({type: 'self', desc: 'Между счетами', date: t.transferDate, amount: t.amount});
+                    } else if (isMineSender) {
+                        exp += t.amount; allTransactions.push({type: 'out', desc: 'Перевод клиенту', date: t.transferDate, amount: t.amount});
+                    } else if (isMineReceiver) {
+                        inc += t.amount; allTransactions.push({type: 'in', desc: 'Входящий перевод', date: t.transferDate, amount: t.amount});
                     }
                 });
-
+                currentExpenses = exp;
                 allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
-                renderHistory(allTransactions);
-                renderChart(income, expense);
-            }
-        } catch(e) { console.error(e); }
+                renderHistory(allTransactions); renderChart(inc, exp); updateSpendingWidget(exp);
+            } else { tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Ошибка</td></tr>'; }
+        } catch(e) { tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Ошибка</td></tr>'; }
     }
 
-    function renderHistory(transactions) {
-        const tbody = document.getElementById('historyList');
-        tbody.innerHTML = '';
-        if(transactions.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-5 text-muted">Пусто</td></tr>';
-            return;
-        }
+    function updateSpendingWidget(expenses) {
+        const limit = parseFloat(monthlyLimit) || 5000;
+        const percent = Math.min((expenses / limit) * 100, 100);
+        document.getElementById('spendingAmount').innerText = expenses.toFixed(2) + ' BYN';
+        document.getElementById('spendingPercent').innerText = percent.toFixed(0) + '%';
+        const bar = document.getElementById('spendingBar');
+        bar.style.width = percent + '%';
+        if (percent > 90) bar.className = 'progress-bar bg-danger';
+        else if (percent > 75) bar.className = 'progress-bar bg-warning';
+        else bar.className = 'progress-bar bg-info';
+    }
 
-        transactions.slice(0, 10).forEach(t => {
-            const isOut = t.type === 'out';
-            const icon = isOut ? '<i class="fas fa-arrow-up text-danger"></i>' : '<i class="fas fa-arrow-down text-success"></i>';
-            const colorClass = isOut ? 'text-danger' : 'text-success';
-            const date = new Date(t.date).toLocaleDateString('ru-RU');
-
-            tbody.innerHTML += `
-                <tr>
-                    <td class="ps-4"><div class="bg-white rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width:35px;height:35px">${icon}</div></td>
-                    <td><div class="fw-bold text-dark">${t.desc}</div><small class="text-muted">${t.otherParty}</small></td>
-                    <td class="text-muted small">${date}</td>
-                    <td class="text-end pe-4 fw-bold ${colorClass}">${isOut?'-':'+'}₽${t.amount.toFixed(2)}</td>
-                </tr>`;
+    function renderHistory(l) {
+        const t = document.getElementById('historyList'); t.innerHTML = '';
+        if (l.length === 0) { t.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-muted">Операций не найдено</td></tr>'; return; }
+        l.slice(0, 10).forEach(x => {
+            let c, s, icon;
+            if (x.type === 'out') { c = 'text-danger'; s = '-'; icon = '<i class="fas fa-arrow-up text-danger"></i>'; }
+            else if (x.type === 'in') { c = 'text-info'; s = '+'; icon = '<i class="fas fa-arrow-down text-info"></i>'; }
+            else { c = 'text-secondary'; s = ''; icon = '<i class="fas fa-exchange-alt text-secondary"></i>'; }
+            t.innerHTML += `<tr><td class="ps-3">${icon}</td><td>${x.desc}</td><td class="text-muted small">${new Date(x.date).toLocaleDateString()}</td><td class="text-end pe-3 fw-bold money-font sensitive-data ${c}">${s}${x.amount.toFixed(2)}</td></tr>`;
         });
     }
 
-    function filterHistory(type) {
-        document.querySelectorAll('.btn-group button').forEach(b => b.classList.remove('active'));
-        event.target.classList.add('active');
-        if (type === 'all') renderHistory(allTransactions);
-        else renderHistory(allTransactions.filter(t => t.type === type));
-    }
-
-    // График
     function renderChart(inc, exp) {
-        const ctx = document.getElementById('financeChart').getContext('2d');
+        const ctxCanvas = document.getElementById('financeChart');
+        const noData = document.getElementById('chartNoData');
+        const centerText = document.getElementById('chartCenterText');
         if(financeChart) financeChart.destroy();
-        if(inc===0 && exp===0) { inc=1; exp=1; }
-        financeChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Доходы', 'Расходы'],
-                datasets: [{
-                    data: [inc, exp],
-                    backgroundColor: ['#28a745', '#dc3545'],
-                    borderWidth: 0
-                }]
-            },
-            options: { responsive: true, cutout: '75%', plugins: { legend: { position: 'bottom' } } }
-        });
+        if(inc === 0 && exp === 0) { ctxCanvas.classList.add('d-none'); centerText.classList.add('d-none'); noData.classList.remove('d-none'); return; }
+        ctxCanvas.classList.remove('d-none'); centerText.classList.remove('d-none'); noData.classList.add('d-none');
+        const ctx = ctxCanvas.getContext('2d');
+        financeChart = new Chart(ctx, { type: 'doughnut', data: { labels: ['Доходы', 'Расходы'], datasets: [{ data: [inc, exp], backgroundColor: ['#0aff60', '#ff3366'], borderWidth: 0, borderRadius: 20, spacing: 5 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '85%', plugins: { legend: { display: false } }, animation: { animateScale: true } } });
     }
 
-    // Курсы валют
-    async function fetchRealRates() {
-        try {
-            const r = await fetch('https://www.cbr-xml-daily.ru/daily_json.js');
-            const d = await r.json();
-            document.getElementById('rate-usd').innerText = d.Valute.USD.Value.toFixed(2)+' ₽';
-            document.getElementById('rate-eur').innerText = d.Valute.EUR.Value.toFixed(2)+' ₽';
-            document.getElementById('rate-cny').innerText = d.Valute.CNY.Value.toFixed(2)+' ₽';
-        } catch(e) {}
-    }
+    // Matrix Rain
+    function initMatrix() { const c=document.getElementById('matrixCanvas'),x=c.getContext('2d'); c.width=window.innerWidth;c.height=window.innerHeight; const l="01", s=14, cl=c.width/s, d=[]; for(let i=0;i<cl;i++)d[i]=1; setInterval(()=>{x.fillStyle='rgba(0,0,0,0.05)';x.fillRect(0,0,c.width,c.height);x.fillStyle='#0F0';x.font=s+'px monospace';for(let i=0;i<d.length;i++){x.fillText(l[Math.floor(Math.random()*2)],i*s,d[i]*s);if(d[i]*s>c.height&&Math.random()>0.975)d[i]=0;d[i]++;}},50); }
 
-    // Перевод средств
-    function openTransferModal() {
-        const select = document.getElementById('transferFromCard');
-        select.innerHTML = '';
-        const active = myCards.filter(c => c.cardStatus === 'ACTIVE');
-        if(active.length === 0) { alert('Нет активных карт'); return; }
-        active.forEach(c => select.innerHTML += `<option value="${c.id}">**** ${c.cardNumber.slice(-4)} (₽${c.balance})</option>`);
-
-        toggleTransferType('others');
-        document.getElementById('transferAmount').value = '';
-        document.getElementById('transferToCardInput').value = '';
-        transferModal.show();
-    }
-
-    function toggleTransferType(type) {
-        transferMode = type;
-        const btnOthers = document.getElementById('btnTypeOthers');
-        const btnSelf = document.getElementById('btnTypeSelf');
-        const inCont = document.getElementById('targetInputContainer');
-        const selCont = document.getElementById('targetSelectContainer');
-
-        if(type === 'others') {
-            btnOthers.classList.replace('text-muted', 'bg-white'); btnOthers.classList.add('shadow-sm', 'text-dark');
-            btnSelf.classList.replace('bg-white', 'text-muted'); btnSelf.classList.remove('shadow-sm', 'text-dark');
-            inCont.classList.remove('d-none'); selCont.classList.add('d-none');
-        } else {
-            btnSelf.classList.replace('text-muted', 'bg-white'); btnSelf.classList.add('shadow-sm', 'text-dark');
-            btnOthers.classList.replace('bg-white', 'text-muted'); btnOthers.classList.remove('shadow-sm', 'text-dark');
-            inCont.classList.add('d-none'); selCont.classList.remove('d-none');
-            updateMyCardsTarget();
-        }
-    }
-
-    function updateMyCardsTarget() {
-        if(transferMode !== 'self') return;
-        const fromId = document.getElementById('transferFromCard').value;
-        const target = document.getElementById('transferToCardSelect');
-        target.innerHTML = '<option disabled selected>Выберите карту</option>';
-        myCards.filter(c => c.id != fromId && c.cardStatus === 'ACTIVE').forEach(c => {
-            target.innerHTML += `<option value="${c.id}">**** ${c.cardNumber.slice(-4)}</option>`;
-        });
-    }
-
-    async function submitTransfer() {
-        const fromId = document.getElementById('transferFromCard').value;
-        const amount = document.getElementById('transferAmount').value;
-
-        let payload = {
-            fromCardId: parseInt(fromId),
-            amount: parseFloat(amount),
-            description: "Web Transfer"
-        };
-
-        if (transferMode === 'others') {
-            const num = document.getElementById('transferToCardInput').value.replace(/\s/g, '');
-            if (num.length < 16) { alert('Введите полный номер карты'); return; }
-            payload.toCardNumber = num;
-        } else {
-            const targetId = document.getElementById('transferToCardSelect').value;
-            if (!targetId || targetId === 'Выберите карту') { alert('Выберите карту получателя'); return; }
-            payload.toCardId = parseInt(targetId);
-        }
-
-        if (payload.amount <= 0) { alert('Неверная сумма'); return; }
-
-        try {
-            const res = await fetch('/api/user/transfers', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (res.ok) {
-                transferModal.hide();
-                confetti({ origin: { y: 0.7 } });
-                loadData();
-                loadNotifications();
-            } else {
-                const err = await res.json();
-                alert('Ошибка: ' + (err.message || 'Сбой'));
-            }
-        } catch (e) { alert('Ошибка сети'); }
-    }
-
-    // Прочее
-    function copyCardNumber(e) {
-        navigator.clipboard.writeText(e.target.innerText.replace(/\s/g, ''));
-        const toast = document.getElementById('copyToast');
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 2000);
-        e.stopPropagation();
-    }
-
-    function animateValue(id, start, end, duration) {
-        const obj = document.getElementById(id);
-        let startTimestamp = null;
-        const step = (timestamp) => {
-            if (!startTimestamp) startTimestamp = timestamp;
-            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-            const val = progress * (end - start) + start;
-            obj.innerHTML = '₽' + val.toFixed(2);
-            if (progress < 1) window.requestAnimationFrame(step);
-        };
-        window.requestAnimationFrame(step);
-    }
-
-    async function loadNotifications() {
-        try {
-            const res = await fetch('/api/user/notifications/unread');
-            if(res.ok) {
-                const n = await res.json();
-                const badge = document.getElementById('notifBadge');
-                const list = document.getElementById('notifList');
-                if(n.length > 0) {
-                    badge.classList.remove('d-none');
-                    list.innerHTML = '';
-                    n.forEach(x => {
-                        const c = x.type === 'SUCCESS' ? 'success' : 'primary';
-                        list.innerHTML += `<li><a class="dropdown-item py-2 border-bottom" href="#"><i class="fas fa-circle text-${c} me-2 small"></i>${x.message}</a></li>`;
-                    });
-                }
-            }
-        } catch(e){}
-    }
-
+    // Helpers
+    async function fetchNBRBRates() { try{ const r=await fetch('https://api.nbrb.by/exrates/rates?periodicity=0'); const d=await r.json(); const u=d.find(c=>c.Cur_Abbreviation==='USD'); const e=d.find(c=>c.Cur_Abbreviation==='EUR'); const ru=d.find(c=>c.Cur_Abbreviation==='RUB'); if(u) { document.getElementById('rate-usd').innerText=u.Cur_OfficialRate.toFixed(4); document.getElementById('tick-usd').innerText=u.Cur_OfficialRate.toFixed(4); } if(e) { document.getElementById('rate-eur').innerText=e.Cur_OfficialRate.toFixed(4); document.getElementById('tick-eur').innerText=e.Cur_OfficialRate.toFixed(4); } if(ru) { document.getElementById('rate-rub').innerText=ru.Cur_OfficialRate.toFixed(4); document.getElementById('tick-rub').innerText=ru.Cur_OfficialRate.toFixed(4); } }catch(e){ document.getElementById('rate-usd').innerText="N/A"; } }
+    async function createTicket() { const s = document.getElementById('ticketSubject').value; const d = document.getElementById('ticketDesc').value; if(!s || !d) { alert('Заполните поля!'); return; } try { const res = await fetch('/api/user/tickets', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({subject: s, description: d}) }); if (res.ok) { document.getElementById('createTicketForm').reset(); loadMyTickets(); alert('Тикет создан'); } } catch(e) { alert('Ошибка сети'); } }
+    function openTransferModal() { const s=document.getElementById('transferFromCard'); s.innerHTML=''; const a=myCards.filter(c=>c.cardStatus==='ACTIVE'); if(a.length===0) {alert("Нет активных карт"); return;} a.forEach(c=>s.innerHTML+=`<option value="${c.id}">**** ${c.cardNumber.slice(-4)} (${c.balance} BYN)</option>`); toggleTransferType('others'); document.getElementById('transferAmount').value=''; document.getElementById('transferToCardInput').value=''; transferModal.show(); }
+    function toggleTransferType(t) { transferMode=t; const bo=document.getElementById('btnTypeOthers'), bs=document.getElementById('btnTypeSelf'), ic=document.getElementById('targetInputContainer'), sc=document.getElementById('targetSelectContainer'); if(t==='others'){ bo.style.background='rgba(255,255,255,0.1)';bo.classList.replace('text-muted','text-white'); bs.style.background='transparent';bs.classList.replace('text-white','text-muted'); ic.classList.remove('d-none'); sc.classList.add('d-none'); } else{ bs.style.background='rgba(255,255,255,0.1)';bs.classList.replace('text-muted','text-white'); bo.style.background='transparent';bo.classList.replace('text-white','text-muted'); ic.classList.add('d-none'); sc.classList.remove('d-none'); updateMyCardsTarget(); } }
+    function updateMyCardsTarget() { if(transferMode!=='self')return; const fid=document.getElementById('transferFromCard').value; const t=document.getElementById('transferToCardSelect'); t.innerHTML='<option disabled selected>Карта зачисления</option>'; myCards.filter(c=>c.id!=fid&&c.cardStatus==='ACTIVE').forEach(c=>{ t.innerHTML+=`<option value="${c.id}">**** ${c.cardNumber.slice(-4)}</option>`; }); }
+    async function submitTransfer() { const fid=document.getElementById('transferFromCard').value; const amt=document.getElementById('transferAmount').value; let pl={fromCardId:parseInt(fid),amount:parseFloat(amt),description:"Web Transfer"}; if(transferMode==='others'){ const n=document.getElementById('transferToCardInput').value.replace(/\s/g,''); if(n.length<16)return; pl.toCardNumber=n; } else { const tid=document.getElementById('transferToCardSelect').value; pl.toCardId=parseInt(tid); } try{ const r=await fetch('/api/user/transfers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(pl)}); if(r.ok){ transferModal.hide(); confetti({origin:{y:0.7},colors:['#00f2ff','#bc13fe']}); loadData(); loadNotifications(); }else{ alert('Ошибка'); } }catch(e){} }
+    function openCardModal(id) { const c=myCards.find(x=>x.id==id); if(!c)return; document.getElementById('modalCardNumber').innerText=c.cardNumber; document.getElementById('modalCardHolder').innerText=c.cardHolder; if(c.expiryDate)document.getElementById('modalCardExpiry').innerText=c.expiryDate.split('-')[1]+'/'+c.expiryDate.split('-')[0].slice(-2); document.getElementById('modalCardBalance').innerText=c.balance.toFixed(2)+' BYN'; document.getElementById('modalCardCvv').innerText=Math.floor(Math.random()*899)+100; document.getElementById('modalCardLogo').src=c.cardNumber.trim().startsWith('5')?MC_LOGO:VISA_LOGO; document.getElementById('modalCardStatus').innerText=c.cardStatus; const a=document.getElementById('modalActions'); a.innerHTML=''; if(c.cardStatus==='ACTIVE')a.innerHTML=`<button onclick="sendRequest('${c.id}','block')" class="btn btn-outline-danger w-100">BLOCK</button>`; else if(c.cardStatus==='BLOCKED')a.innerHTML=`<button onclick="sendRequest('${c.id}','unblock')" class="btn btn-outline-success w-100">UNBLOCK</button>`; else a.innerHTML=`<button class="btn btn-outline-secondary disabled w-100">PENDING</button>`; viewModal.show(); }
+    async function sendRequest(id,t) { if(confirm('Confirm?')){ await fetch(`/api/user/cards/${t}/${id}`,{method:'POST'}); viewModal.hide(); loadData(); } }
+    function copyCardNumber(e) { navigator.clipboard.writeText(e.target.innerText.replace(/\s/g,'')); const t=document.getElementById('copyToast'); t.classList.remove('opacity-0'); setTimeout(()=>t.classList.add('opacity-0'),2000); }
+    function animateValue(id,s,e,d) { const o=document.getElementById(id); if(!o)return; let st=null; const step=(ts)=>{ if(!st)st=ts; const p=Math.min((ts-st)/d,1); o.innerHTML=(p*(e-s)+s).toFixed(2); if(p<1)window.requestAnimationFrame(step); }; window.requestAnimationFrame(step); }
+    function openSupportModal() { loadMyTickets(); supportModal.show(); }
+    async function loadMyTickets() { const c=document.getElementById('ticketsList'); c.innerHTML='<div class="text-center p-3 small text-muted">Загрузка...</div>'; try{ const r=await fetch('/api/user/tickets'); const t=await r.json(); c.innerHTML=''; if(t.length===0){c.innerHTML='<div class="text-center p-4 text-muted small">Обращений нет</div>';return;} t.forEach(x=>{ c.innerHTML+=`<div class="list-group-item bg-transparent border-secondary text-white"><div class="d-flex justify-content-between"><span class="badge ${x.status==='OPEN'?'bg-success':'bg-secondary'}">${x.status}</span><small class="text-muted">${new Date(x.createdAt).toLocaleDateString()}</small></div><div class="mt-1 small">${x.subject}</div></div>`; }); }catch(e){ c.innerHTML='<div class="text-center text-danger small">Ошибка</div>'; } }
+    async function loadNotifications() { try{ const r=await fetch('/api/user/notifications/unread'); if(r.ok){ const n=await r.json(); const b=document.getElementById('notifBadge'); const l=document.getElementById('notifList'); if(n.length>0){ b.classList.remove('d-none'); l.innerHTML=''; n.forEach(x=>{ l.innerHTML+=`<li><a class="dropdown-item" href="#">${x.message}</a></li>`; }); } } }catch(e){} }
     async function markNotificationsRead() { document.getElementById('notifBadge').classList.add('d-none'); }
-    async function logout() { await fetch('/api/auth/logout', { method: 'POST' }); window.location.href = '/login'; }
+    async function logout() { await fetch('/api/auth/logout',{method:'POST'}); window.location.href='/login'; }
 </script>
 </body>
 </html>
@@ -7776,82 +7972,75 @@ server:
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Вход в Банк</title>
+    <title>Вход • CyberBank</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .card { border: none; border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
-        .form-control { border-radius: 10px; padding: 12px; }
-        .btn-primary { padding: 12px; border-radius: 10px; background: #764ba2; border: none; }
-        .btn-primary:hover { background: #5a3286; }
+        body {
+            background-color: #050505;
+            background-image: radial-gradient(circle at 50% -20%, #1a1a2e, #000);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            color: white;
+        }
+        .orb { position: absolute; border-radius: 50%; filter: blur(80px); z-index: -1; opacity: 0.4; animation: float 10s infinite ease-in-out alternate; }
+        .orb-1 { width: 300px; height: 300px; background: #bc13fe; top: 10%; left: 20%; }
+        .orb-2 { width: 400px; height: 400px; background: #00f2ff; bottom: 10%; right: 20%; animation-delay: -5s; }
+        @keyframes float { from { transform: translate(0, 0); } to { transform: translate(30px, 30px); } }
+
+        .login-card {
+            width: 100%; max-width: 400px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px; padding: 3rem 2rem;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+        .form-control { background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; padding: 12px 15px; border-radius: 12px; }
+        .form-control:focus { background: rgba(0, 0, 0, 0.6); color: #fff; border-color: #00f2ff; box-shadow: 0 0 15px rgba(0, 242, 255, 0.2); }
+        .form-control::placeholder { color: rgba(255, 255, 255, 0.3); }
+
+        /* Исправленный цвет лейблов */
+        .form-label-custom { color: #ccc; font-size: 0.85rem; margin-bottom: 5px; display: block; margin-left: 5px; }
+
+        .btn-neon { background: linear-gradient(90deg, #00f2ff, #00a8ff); border: none; color: #000; font-weight: 700; padding: 12px; border-radius: 12px; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-neon:hover { box-shadow: 0 0 30px rgba(0, 242, 255, 0.4); color: #000; transform: scale(1.02); }
+        .link-light-opacity { color: rgba(255,255,255,0.5); text-decoration: none; transition: 0.2s; }
+        .link-light-opacity:hover { color: #fff; }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-4">
-            <div class="card p-4">
-                <h3 class="text-center mb-4 fw-bold text-secondary">Bank Login</h3>
-
-                <!-- Блок для ошибок -->
-                <div id="error-msg" class="alert alert-danger d-none text-center"></div>
-
-                <form id="loginForm">
-                    <div class="mb-3">
-                        <label class="form-label text-muted">Имя пользователя</label>
-                        <input type="text" id="username" class="form-control" placeholder="Введите username" required>
-                    </div>
-                    <div class="mb-4">
-                        <label class="form-label text-muted">Пароль</label>
-                        <input type="password" id="password" class="form-control" placeholder="••••••••" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100 fw-bold">Войти</button>
-                    <div class="text-center mt-3">
-                        <a href="/register" class="text-decoration-none text-secondary small">Нет аккаунта? Регистрация</a>
-                    </div>
-                </form>
-            </div>
+<div class="orb orb-1"></div><div class="orb orb-2"></div>
+<div class="login-card">
+    <div class="text-center mb-5"><h2 class="fw-bold mb-1">Welcome Back</h2><p class="text-muted small">Войдите в свой цифровой аккаунт</p></div>
+    <div id="error-msg" class="alert alert-danger d-none bg-danger bg-opacity-25 border-danger text-white text-center small py-2"></div>
+    <form id="loginForm">
+        <div class="mb-3">
+            <span class="form-label-custom">Имя пользователя</span>
+            <input type="text" id="username" class="form-control" placeholder="Username" required>
         </div>
-    </div>
+        <div class="mb-4">
+            <span class="form-label-custom">Пароль</span>
+            <input type="password" id="password" class="form-control" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-neon w-100 mb-3">Войти</button>
+        <div class="text-center"><a href="/register" class="link-light-opacity small">Нет аккаунта? Создать</a></div>
+    </form>
 </div>
-
 <script>
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
-        e.preventDefault(); // Останавливаем обычную отправку формы
-        console.log("Нажата кнопка входа..."); // Смотри в F12 -> Console
-
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        const errorDiv = document.getElementById('error-msg');
-
-        errorDiv.classList.add('d-none');
-
+        e.preventDefault();
+        const u = document.getElementById('username').value, p = document.getElementById('password').value, err = document.getElementById('error-msg');
+        err.classList.add('d-none');
         try {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-
-            console.log("Ответ сервера:", response.status);
-
-            if (response.ok) {
-                // Успешный вход
-                console.log("Вход успешен, перенаправляем...");
-                window.location.href = '/';
-            } else {
-                // Ошибка входа (401, 400 и т.д.)
-                console.log("Ошибка входа");
-                errorDiv.textContent = 'Неверный логин или пароль';
-                errorDiv.classList.remove('d-none');
-            }
-        } catch (err) {
-            // Ошибка сети или JS
-            console.error("Ошибка fetch:", err);
-            errorDiv.textContent = 'Ошибка соединения. Проверьте сервер.';
-            errorDiv.classList.remove('d-none');
-            alert("Ошибка соединения: " + err); // Чтобы точно заметил
-        }
+            const res = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, password: p }) });
+            if (res.ok) window.location.href = '/'; else { err.textContent = 'Неверный логин или пароль'; err.classList.remove('d-none'); }
+        } catch (e) { err.textContent = 'Ошибка сети'; err.classList.remove('d-none'); }
     });
 </script>
 </body>
@@ -7866,83 +8055,81 @@ server:
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Регистрация в Банке</title>
+    <title>Регистрация • CyberBank</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .card { border: none; border-radius: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
-        .form-control { border-radius: 10px; padding: 12px; }
-        .btn-success { padding: 12px; border-radius: 10px; background: #28a745; border: none; }
-        .btn-success:hover { background: #218838; }
+        body {
+            background-color: #050505;
+            background-image: radial-gradient(circle at 50% -20%, #1a1a2e, #000);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            color: white;
+        }
+        .orb { position: absolute; border-radius: 50%; filter: blur(80px); z-index: -1; opacity: 0.4; animation: float 10s infinite ease-in-out alternate; }
+        .orb-1 { width: 300px; height: 300px; background: #0aff60; top: 10%; right: 20%; }
+        .orb-2 { width: 400px; height: 400px; background: #00a8ff; bottom: 10%; left: 20%; animation-delay: -5s; }
+        @keyframes float { from { transform: translate(0, 0); } to { transform: translate(30px, 30px); } }
+
+        .register-card {
+            width: 100%; max-width: 400px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px; padding: 3rem 2rem;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+        .form-control { background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); color: #fff; padding: 12px 15px; border-radius: 12px; }
+        .form-control:focus { background: rgba(0, 0, 0, 0.6); color: #fff; border-color: #0aff60; box-shadow: 0 0 15px rgba(10, 255, 96, 0.2); }
+        .form-control::placeholder { color: rgba(255, 255, 255, 0.3); }
+
+        /* Исправленный цвет лейблов */
+        .form-label-custom { color: #ccc; font-size: 0.85rem; margin-bottom: 5px; display: block; margin-left: 5px; }
+
+        .btn-neon-green { background: linear-gradient(90deg, #0aff60, #00d2ff); border: none; color: #000; font-weight: 700; padding: 12px; border-radius: 12px; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-neon-green:hover { box-shadow: 0 0 30px rgba(10, 255, 96, 0.4); color: #000; transform: scale(1.02); }
+        .link-light-opacity { color: rgba(255,255,255,0.5); text-decoration: none; transition: 0.2s; }
+        .link-light-opacity:hover { color: #fff; }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-4">
-            <div class="card p-4">
-                <h3 class="text-center mb-4 fw-bold text-secondary">Регистрация</h3>
-                <div id="error-msg" class="alert alert-danger d-none text-center"></div>
-                <div id="success-msg" class="alert alert-success d-none text-center"></div>
-
-                <form id="registerForm">
-                    <div class="mb-3">
-                        <label class="form-label text-muted">Придумайте Username</label>
-                        <input type="text" id="username" class="form-control" placeholder="username" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label text-muted">Ваш Email</label>
-                        <input type="email" id="email" class="form-control" placeholder="name@example.com" required>
-                    </div>
-                    <div class="mb-4">
-                        <label class="form-label text-muted">Пароль</label>
-                        <input type="password" id="password" class="form-control" placeholder="••••••••" required>
-                    </div>
-                    <button type="submit" class="btn btn-success w-100 fw-bold">Создать аккаунт</button>
-                    <div class="text-center mt-3">
-                        <a href="/login" class="text-decoration-none text-secondary small">Уже есть аккаунт? Войти</a>
-                    </div>
-                </form>
-            </div>
+<div class="orb orb-1"></div><div class="orb orb-2"></div>
+<div class="register-card">
+    <div class="text-center mb-4"><h2 class="fw-bold mb-1">Join Us</h2><p class="text-muted small">Создайте новый аккаунт</p></div>
+    <div id="error-msg" class="alert alert-danger d-none bg-danger bg-opacity-25 border-danger text-white text-center small py-2"></div>
+    <div id="success-msg" class="alert alert-success d-none bg-success bg-opacity-25 border-success text-white text-center small py-2"></div>
+    <form id="registerForm">
+        <div class="mb-3">
+            <span class="form-label-custom">Username</span>
+            <input type="text" id="username" class="form-control" placeholder="Придумайте логин" required>
         </div>
-    </div>
+        <div class="mb-3">
+            <span class="form-label-custom">Email</span>
+            <input type="email" id="email" class="form-control" placeholder="name@example.com" required>
+        </div>
+        <div class="mb-4">
+            <span class="form-label-custom">Пароль</span>
+            <input type="password" id="password" class="form-control" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-neon-green w-100 mb-3">Зарегистрироваться</button>
+        <div class="text-center"><a href="/login" class="link-light-opacity small">Уже есть аккаунт? Войти</a></div>
+    </form>
 </div>
-
 <script>
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const username = document.getElementById('username').value;
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const errorDiv = document.getElementById('error-msg');
-        const successDiv = document.getElementById('success-msg');
-
-        errorDiv.classList.add('d-none');
-        successDiv.classList.add('d-none');
-
+        const u = document.getElementById('username').value, em = document.getElementById('email').value, p = document.getElementById('password').value, err = document.getElementById('error-msg'), succ = document.getElementById('success-msg');
+        err.classList.add('d-none'); succ.classList.add('d-none');
         try {
-            const response = await fetch('/api/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, email, password })
-            });
-
-            if (response.ok) {
-                successDiv.textContent = 'Успешно! Перенаправление...';
-                successDiv.classList.remove('d-none');
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 1000);
-            } else {
-                const data = await response.text(); // Читаем текст ошибки, если есть
-                errorDiv.textContent = 'Ошибка регистрации: ' + (data || 'Проверьте данные');
-                errorDiv.classList.remove('d-none');
-            }
-        } catch (err) {
-            console.error(err);
-            errorDiv.textContent = 'Ошибка соединения с сервером';
-            errorDiv.classList.remove('d-none');
-        }
+            const res = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, email: em, password: p }) });
+            if (res.ok) { succ.textContent = 'Аккаунт создан! Входим...'; succ.classList.remove('d-none'); setTimeout(() => window.location.href = '/', 1500); }
+            else { const txt = await res.text(); err.textContent = 'Ошибка: ' + (txt || 'Проверьте данные'); err.classList.remove('d-none'); }
+        } catch (e) { err.textContent = 'Ошибка сети'; err.classList.remove('d-none'); }
     });
 </script>
 </body>

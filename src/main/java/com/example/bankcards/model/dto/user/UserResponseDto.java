@@ -4,6 +4,7 @@ import com.example.bankcards.model.entity.enums.Role;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -23,6 +24,8 @@ public class UserResponseDto {
     private String email;
     @Schema(description = "User's role (e.g., USER, ADMIN).", example = "USER")
     private Role role;
+    private BigDecimal monthlyLimit; // Новое поле
+    private String avatarUrl;
     @Schema(description = "Date and time when the user account was created.", example = "2023-01-15T09:00:00")
     private LocalDateTime createdAt;
     @Schema(description = "Date and time when the user account was last updated.", example = "2023-10-20T14:45:00")
