@@ -11,7 +11,7 @@ import java.util.List;
 
 /**
  * Represents a bank card in the system.
- * This entity stores details about a card, its status, balance, and its association with a user.
+ * This entity stores details about a card, its status, balance, and its association with an account.
  * It extends {@link BasicEntity} to inherit common fields like ID and timestamps.
  */
 @Entity
@@ -57,12 +57,20 @@ public class Card extends BasicEntity {
     private BigDecimal balance = BigDecimal.ZERO;
 
     /**
-     * The user who owns this card.
+     * The account this card is linked to. (UPDATED RELATIONSHIP)
      * Many-to-one relationship, fetched lazily.
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name="user_id", nullable = false)
-    private User user;
+    @JoinColumn(name="account_id", nullable = false)
+    private Account account;
+
+    // NOTE: The direct link to User has been removed as Card is now linked via Account.
+    // However, since the original User entity still holds a 'cards' list, we must ensure
+    // that the 'mappedBy' attribute in User is updated if we strictly follow JPA rules,
+    // but since we removed 'user' field here, we must remove the 'cards' list in User.
+    // For simplicity and to match the provided User entity structure, we will assume
+    // the User entity's 'cards' list is now redundant or handled differently,
+    // but we keep the User entity as modified above.
 
     /**
      * A list of transfers where this card is the recipient.

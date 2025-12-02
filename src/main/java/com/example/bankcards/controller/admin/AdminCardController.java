@@ -291,4 +291,22 @@ public class AdminCardController {
         CardResponseDto card = cardService.approveUnblockRequest(id);
         return ResponseEntity.ok(card);
     }
+
+    @PostMapping("/{id}/decline")
+    public ResponseEntity<CardResponseDto> declineRequest(@PathVariable Long id) {
+        CardResponseDto card = cardService.declineRequest(id);
+        return ResponseEntity.ok(card);
+    }
+
+    @PostMapping("/{id}/deposit")
+    public ResponseEntity<CardResponseDto> deposit(@PathVariable Long id, @RequestBody com.example.bankcards.model.dto.card.BalanceChangeRequest request) {
+        CardResponseDto card = cardService.deposit(id, request.getAmount());
+        return ResponseEntity.ok(card);
+    }
+
+    @PostMapping("/{id}/withdraw")
+    public ResponseEntity<CardResponseDto> withdraw(@PathVariable Long id, @RequestBody com.example.bankcards.model.dto.card.BalanceChangeRequest request) {
+        CardResponseDto card = cardService.withdraw(id, request.getAmount());
+        return ResponseEntity.ok(card);
+    }
 }

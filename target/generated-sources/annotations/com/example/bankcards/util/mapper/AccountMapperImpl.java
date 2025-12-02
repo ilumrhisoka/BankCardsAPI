@@ -1,0 +1,49 @@
+package com.example.bankcards.util.mapper;
+
+import com.example.bankcards.model.dto.account.AccountResponseDto;
+import com.example.bankcards.model.entity.Account;
+import com.example.bankcards.model.entity.User;
+import javax.annotation.processing.Generated;
+import org.springframework.stereotype.Component;
+
+@Generated(
+    value = "org.mapstruct.ap.MappingProcessor",
+    date = "2025-10-08T22:37:49+0300",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.6 (Oracle Corporation)"
+)
+@Component
+public class AccountMapperImpl implements AccountMapper {
+
+    @Override
+    public AccountResponseDto toAccountResponseDto(Account account) {
+        if ( account == null ) {
+            return null;
+        }
+
+        AccountResponseDto accountResponseDto = new AccountResponseDto();
+
+        accountResponseDto.setUserId( accountUserId( account ) );
+        accountResponseDto.setId( account.getId() );
+        accountResponseDto.setAccountNumber( account.getAccountNumber() );
+        accountResponseDto.setBalance( account.getBalance() );
+        accountResponseDto.setAccountType( account.getAccountType() );
+        accountResponseDto.setCreatedAt( account.getCreatedAt() );
+
+        return accountResponseDto;
+    }
+
+    private Long accountUserId(Account account) {
+        if ( account == null ) {
+            return null;
+        }
+        User user = account.getUser();
+        if ( user == null ) {
+            return null;
+        }
+        Long id = user.getId();
+        if ( id == null ) {
+            return null;
+        }
+        return id;
+    }
+}

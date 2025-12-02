@@ -49,11 +49,16 @@ public class User extends BasicEntity{
     private Role role = Role.ROLE_USER;
 
     /**
-     * A list of bank cards owned by this user.
+     * A list of bank accounts owned by this user. (NEW FIELD)
      * One-to-many relationship, with cascade operations for all changes and fetched lazily.
      */
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Card> cards = new ArrayList<>();
+    private List<Account> accounts = new ArrayList<>();
+
+    /*
+     * Список cards удален, так как Card теперь связана через Account,
+     * и в Card нет поля 'user' для обратного отображения.
+     */
 
     /**
      * Constructor for creating a new user with essential details.

@@ -15,20 +15,23 @@ import java.util.List;
 public interface CardRepository extends JpaRepository<Card, Long> {
 
     /**
-     * Finds a paginated list of cards associated with a specific username.
+     * Finds a paginated list of cards associated with a specific username via the Account link. (UPDATED)
      *
      * @param username The username of the user whose cards are to be retrieved.
      * @param pageable Pagination information.
      * @return A {@link Page} of {@link Card} entities belonging to the specified user.
      */
-    @Query("SELECT c FROM Card c WHERE c.user.username = :username")
+    @Query("SELECT c FROM Card c WHERE c.account.user.username = :username")
     Page<Card> findByUserUsernamePageable(@Param("username") String username, Pageable pageable);
 
     /**
-     * Finds all cards associated with a specific username.
+     * Finds all cards associated with a specific username via the Account link. (UPDATED)
      *
      * @param username The username of the user whose cards are to be retrieved.
      * @return A {@link List} of {@link Card} entities belonging to the specified user.
      */
-    List<Card> findByUserUsername(String username);
+    List<Card> findByAccount_User_Username(String username); // Используем вывод запросов Spring Data JPA
+
+    // Переименовали старый метод на новый, чтобы соответствовать новой структуре.
+    // List<Card> findByUserUsername(String username); // Старый метод удален/заменен
 }

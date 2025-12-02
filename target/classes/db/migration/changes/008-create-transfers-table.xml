@@ -28,7 +28,9 @@
             <column name="created_at" type="TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="TIMESTAMP"/>
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
         </createTable>
         <addForeignKeyConstraint baseTableName="t_transfers"
                                  baseColumnNames="from_card_id"

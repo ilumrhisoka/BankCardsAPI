@@ -6,7 +6,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
-import lombok.Getter;
+import lombok.Getter; // Убедитесь, что Lombok импортирован
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -21,8 +21,12 @@ import java.util.UUID;
 public class JwtUtil {
     @Value("${jwt.secret}")
     private String secret;
+
+    // Добавляем @Getter, чтобы получить доступ к времени истечения
+    @Getter
     @Value("${jwt.access-token.expiration}")
     private long accessTokenExpiration;
+
     @Getter
     @Value("${jwt.refresh-token.expiration}")
     private long refreshTokenExpiration;
@@ -71,6 +75,7 @@ public class JwtUtil {
                     .parseSignedClaims(token);
             return true;
         } catch (Exception e) {
+            // В реальном приложении здесь стоит логировать ошибку (например, ExpiredJwtException)
             return false;
         }
     }
@@ -114,6 +119,4 @@ public class JwtUtil {
     public String generateRefreshTokenString() {
         return UUID.randomUUID().toString();
     }
-
-
 }

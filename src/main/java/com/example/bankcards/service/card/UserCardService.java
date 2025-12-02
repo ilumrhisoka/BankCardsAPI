@@ -40,7 +40,8 @@ public class UserCardService {
      * @return A {@link BigDecimal} representing the sum of balances of all active cards.
      */
     public BigDecimal getTotalBalance(String username) {
-        List<Card> cards = cardRepository.findByUserUsername(username);
+        // Использование нового метода репозитория
+        List<Card> cards = cardRepository.findByAccount_User_Username(username);
         return cards.stream()
                 .filter(card -> card.getCardStatus() == CardStatus.ACTIVE)
                 .map(Card::getBalance)
@@ -49,7 +50,7 @@ public class UserCardService {
 
     /**
      * Submits a request to unblock a specific card owned by the authenticated user.
-     * Changes the card status to {@code ACTIVE_PENDING} to indicate a request.
+     * Changes the card status to {@code PENDING_UNBLOCK} to indicate a request.
      *
      * @param cardId The ID of the card to request unblocking for.
      * @param username The username of the user who owns the card.
@@ -62,7 +63,8 @@ public class UserCardService {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new CardNotFoundException("Card not found"));
 
-        if (!card.getUser().getUsername().equals(username)) {
+        // Проверка владения через Account
+        if (!card.getAccount().getUser().getUsername().equals(username)) {
             throw new CardOwnershipException("Access denied: Card doesn't belong to user");
         }
         if (card.getCardStatus() != CardStatus.BLOCKED) {
@@ -74,7 +76,7 @@ public class UserCardService {
 
     /**
      * Submits a request to block a specific card owned by the authenticated user.
-     * Changes the card status to {@code BLOCKED_PENDING} to indicate a request.
+     * Changes the card status to {@code PENDING_BLOCK} to indicate a request.
      *
      * @param cardId The ID of the card to request blocking for.
      * @param username The username of the user who owns the card.
@@ -87,7 +89,8 @@ public class UserCardService {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new CardNotFoundException("Card not found"));
 
-        if (!card.getUser().getUsername().equals(username)) {
+        // Проверка владения через Account
+        if (!card.getAccount().getUser().getUsername().equals(username)) {
             throw new CardOwnershipException("Access denied: Card doesn't belong to user");
         }
         if (card.getCardStatus() == CardStatus.BLOCKED) {
@@ -106,6 +109,7 @@ public class UserCardService {
      * @return A {@link Page} of {@link CardResponseDto} representing the user's cards.
      */
     public Page<CardResponseDto> getUserCards(String username, Pageable pageable) {
+        // Использует метод, который был обновлен в CardRepository
         Page<Card> cardsPage = cardRepository.findByUserUsernamePageable(username, pageable);
         return cardsPage.map(card -> {
             CardResponseDto dto = cardMapper.toCardResponseDto(card);
@@ -127,7 +131,9 @@ public class UserCardService {
     public CardResponseDto getUserCardById(Long cardId, String username) {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new CardNotFoundException("Card not found"));
-        if(!card.getUser().getUsername().equals(username)) {
+
+        // Проверка владения через Account
+        if(!card.getAccount().getUser().getUsername().equals(username)) {
             throw new CardOwnershipException("Access denied: Card doesn't belong to user");
         }
         CardResponseDto dto = cardMapper.toCardResponseDto(card);

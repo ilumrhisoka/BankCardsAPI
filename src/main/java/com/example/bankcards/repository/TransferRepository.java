@@ -20,7 +20,7 @@ public interface TransferRepository extends JpaRepository<Transfer, Long> {
      * @param username The username of the user to find transfers for.
      * @return A {@link List} of {@link Transfer} entities associated with the specified user.
      */
-    @Query("SELECT t FROM Transfer t WHERE t.fromCard.user.username = :username OR t.toCard.user.username = :username ORDER BY t.createdAt DESC")
+    @Query("SELECT t FROM Transfer t WHERE t.fromCard.account.user.username = :username OR t.toCard.account.user.username = :username ORDER BY t.createdAt DESC")
     List<Transfer> findByUserUsername(@Param("username") String username);
 
     /**

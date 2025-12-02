@@ -5,18 +5,19 @@ import com.example.bankcards.exception.user.UserNotFoundException;
 import com.example.bankcards.model.dto.card.CardCreateRequest;
 import com.example.bankcards.model.dto.card.CardResponseDto;
 import com.example.bankcards.model.dto.card.CardUpdateRequest;
+import com.example.bankcards.model.entity.Account;
 import com.example.bankcards.model.entity.Card;
 import com.example.bankcards.model.entity.User;
 import com.example.bankcards.model.entity.enums.CardStatus;
 import com.example.bankcards.exception.card.CardNotFoundException;
 import com.example.bankcards.repository.CardRepository;
 import com.example.bankcards.repository.UserRepository;
-import com.example.bankcards.util.mapper.CardMapper; // Используем CardMapper
+import com.example.bankcards.service.account.AccountService;
+import com.example.bankcards.util.mapper.CardMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +37,7 @@ public class CardService {
     private final UserRepository userRepository;
     private final CardEncryptionService cardEncryptionService;
     private final CardMapper cardMapper;
+    private final AccountService accountService; // Injected AccountService
 
     /**
      * Creates a new bank card for a specified user.
@@ -52,6 +54,9 @@ public class CardService {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
+        // Find or create a default account for the user
+        Account account = accountService.findOrCreateDefaultAccount(user);
+
         String encryptedCardNumber = cardEncryptionService.encryptCardNumber(request.getCardNumber());
 
         Card card = new Card();
@@ -60,7 +65,7 @@ public class CardService {
         card.setExpiryDate(request.getExpiryDate());
         card.setBalance(request.getBalance());
         card.setCardStatus(CardStatus.ACTIVE);
-        card.setUser(user);
+        card.setAccount(account); // Link card to account
 
         Card savedCard = cardRepository.save(card);
         log.info("Created card with ID: {}", savedCard.getId());
@@ -157,11 +162,17 @@ public class CardService {
      * @param id The ID of the card to block.
      * @return A {@link CardResponseDto} representing the blocked card with its number masked.
      * @throws CardNotFoundException if no card is found with the given ID.
+     * @throws CardStatusException if the card is already blocked or pending block.
      */
     @Transactional
     public CardResponseDto blockCard(Long id) {
         Card card = cardRepository.findById(id)
                 .orElseThrow(() -> new CardNotFoundException("Card not found"));
+
+        if (card.getCardStatus() == CardStatus.BLOCKED || card.getCardStatus() == CardStatus.PENDING_BLOCK) {
+            throw new CardStatusException("Card is already blocked or pending block.");
+        }
+
         card.setCardStatus(CardStatus.BLOCKED);
         Card savedCard = cardRepository.save(card);
         log.info("Blocked card with ID: {}", id);
@@ -177,11 +188,17 @@ public class CardService {
      * @param id The ID of the card to activate.
      * @return A {@link CardResponseDto} representing the activated card with its number masked.
      * @throws CardNotFoundException if no card is found with the given ID.
+     * @throws CardStatusException if the card is already active or pending unblock.
      */
     @Transactional
     public CardResponseDto activateCard(Long id) {
         Card card = cardRepository.findById(id)
                 .orElseThrow(() -> new CardNotFoundException("Card not found"));
+
+        if (card.getCardStatus() == CardStatus.ACTIVE || card.getCardStatus() == CardStatus.PENDING_UNBLOCK) {
+            throw new CardStatusException("Card is already active or pending unblock.");
+        }
+
         card.setCardStatus(CardStatus.ACTIVE);
         Card savedCard = cardRepository.save(card);
         log.info("Activated card with ID: {}", id);
@@ -245,6 +262,77 @@ public class CardService {
         card.setCardStatus(CardStatus.ACTIVE);
         Card savedCard = cardRepository.save(card);
         log.info("Successfully approved unblock request for card ID: {}. New status: ACTIVE", id);
+        CardResponseDto dto = cardMapper.toCardResponseDto(savedCard);
+        dto.setCardNumber(cardEncryptionService.getMaskedCardNumber(savedCard.getCardNumber()));
+        return dto;
+    }
+
+    // ... (внутри CardService)
+
+    @Transactional
+    public CardResponseDto deposit(Long id, java.math.BigDecimal amount) {
+        Card card = cardRepository.findById(id)
+                .orElseThrow(() -> new CardNotFoundException("Card not found"));
+
+        if (amount.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be positive");
+        }
+
+        card.setBalance(card.getBalance().add(amount));
+        // Также обновляем баланс счета (аккаунта), так как карта привязана к нему
+        card.getAccount().setBalance(card.getAccount().getBalance().add(amount));
+
+        Card savedCard = cardRepository.save(card);
+        log.info("Deposited {} to card {}", amount, id);
+
+        CardResponseDto dto = cardMapper.toCardResponseDto(savedCard);
+        dto.setCardNumber(cardEncryptionService.getMaskedCardNumber(savedCard.getCardNumber()));
+        return dto;
+    }
+
+    @Transactional
+    public CardResponseDto withdraw(Long id, java.math.BigDecimal amount) {
+        Card card = cardRepository.findById(id)
+                .orElseThrow(() -> new CardNotFoundException("Card not found"));
+
+        if (amount.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Amount must be positive");
+        }
+        if (card.getBalance().compareTo(amount) < 0) {
+            throw new com.example.bankcards.exception.card.InsufficientFundsException("Insufficient funds");
+        }
+
+        card.setBalance(card.getBalance().subtract(amount));
+        card.getAccount().setBalance(card.getAccount().getBalance().subtract(amount));
+
+        Card savedCard = cardRepository.save(card);
+        log.info("Withdrew {} from card {}", amount, id);
+
+        CardResponseDto dto = cardMapper.toCardResponseDto(savedCard);
+        dto.setCardNumber(cardEncryptionService.getMaskedCardNumber(savedCard.getCardNumber()));
+        return dto;
+    }
+
+    // ... внутри класса
+
+    @Transactional
+    public CardResponseDto declineRequest(Long id) {
+        Card card = cardRepository.findById(id)
+                .orElseThrow(() -> new CardNotFoundException("Card not found"));
+
+        if (card.getCardStatus() == CardStatus.PENDING_BLOCK) {
+            // Отклоняем блокировку -> возвращаем в ACTIVE
+            card.setCardStatus(CardStatus.ACTIVE);
+            log.info("Block request declined for card {}", id);
+        } else if (card.getCardStatus() == CardStatus.PENDING_UNBLOCK) {
+            // Отклоняем разблокировку -> возвращаем в BLOCKED
+            card.setCardStatus(CardStatus.BLOCKED);
+            log.info("Unblock request declined for card {}", id);
+        } else {
+            throw new CardStatusException("Card has no pending requests.");
+        }
+
+        Card savedCard = cardRepository.save(card);
         CardResponseDto dto = cardMapper.toCardResponseDto(savedCard);
         dto.setCardNumber(cardEncryptionService.getMaskedCardNumber(savedCard.getCardNumber()));
         return dto;

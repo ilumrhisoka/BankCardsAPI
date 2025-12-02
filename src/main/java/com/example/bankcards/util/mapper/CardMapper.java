@@ -14,6 +14,6 @@ import org.mapstruct.Mapping;
 public interface CardMapper {
 
     @Mapping(target = "cardNumber", ignore = true)
-    @Mapping(target = "username", source = "card.user.username")
+    @Mapping(target = "username", source = "account.user.username") // Corrected mapping path
     CardResponseDto toCardResponseDto(Card card);
 }

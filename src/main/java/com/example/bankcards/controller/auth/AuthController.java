@@ -7,25 +7,20 @@ import com.example.bankcards.model.dto.auth.RefreshRequest;
 import com.example.bankcards.model.dto.auth.RegisterRequest;
 import com.example.bankcards.model.entity.User;
 import com.example.bankcards.repository.UserRepository;
+import com.example.bankcards.security.JwtUtil;
 import com.example.bankcards.service.auth.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.Optional;
 
-/**
- * REST controller for user authentication operations.
- * This controller handles user login, registration, and token refreshing.
- */
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Authentication", description = "User authentication and registration operations")
@@ -34,47 +29,29 @@ public class AuthController {
 
     private final AuthService authService;
     private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
 
-    /**
-     * Handles user login. Authenticates the user with the provided credentials
-     * and returns an access token and a refresh token upon successful authentication.
-     *
-     * @param loginRequest DTO containing username and password.
-     * @return A {@link ResponseEntity} with {@link AuthResponseDto} on success (HTTP 200 OK)
-     *         or an error message on failure (HTTP 401 Unauthorized).
-     */
-    @Operation(summary = "User login",
-            description = "Authenticates a user and returns JWT tokens (access and refresh).")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Login successful",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AuthResponseDto.class))),
-            @ApiResponse(responseCode = "401", description = "Invalid username or password",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = String.class, example = "Invalid username or password.")))
-    })
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
-        AuthResponseDto response = authService.login(loginRequest.getUsername(), loginRequest.getPassword());
-        return ResponseEntity.ok(response);
+    private void setAccessTokenCookie(HttpServletResponse response, String token) {
+        int maxAgeSeconds = (int) (jwtUtil.getAccessTokenExpiration() / 1000);
+        Cookie cookie = new Cookie("accessToken", token);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(false); // true для HTTPS
+        cookie.setPath("/");
+        cookie.setMaxAge(maxAgeSeconds);
+        response.addCookie(cookie);
     }
 
-    /**
-     * Handles new user registration. Registers a new user with the provided details
-     * and returns an access token and a refresh token upon successful registration.
-     *
-     * @param registerRequest DTO containing username, email, and password for registration.
-     * @return A {@link ResponseEntity} with {@link AuthResponseDto} on success (HTTP 201 Created)
-     *         or an error message on failure (HTTP 400 Bad Request if username exists or data is invalid).
-     */
-    @Operation(summary = "User registration",
-            description = "Registers a new user and returns JWT tokens upon successful registration.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "User registered successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AuthResponseDto.class))),
-            @ApiResponse(responseCode = "400", description = "Username already exists or invalid registration data",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = String.class, example = "Username already exists or invalid registration data.")))
-    })
+    @Operation(summary = "User login")
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletResponse response) {
+        AuthResponseDto authResponse = authService.login(loginRequest.getUsername(), loginRequest.getPassword());
+        setAccessTokenCookie(response, authResponse.getAccessToken());
+        return ResponseEntity.ok(authResponse);
+    }
+
+    @Operation(summary = "User registration")
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest registerRequest, HttpServletResponse response) {
         Optional<User> registeredUser = userRepository.findByUsername(registerRequest.getUsername());
         if(registeredUser.isPresent()) {
             throw new DuplicateUsernameException("Username " + registerRequest.getUsername()+ " already exists");
@@ -84,36 +61,31 @@ public class AuthController {
                 registerRequest.getEmail(),
                 registerRequest.getPassword()
         );
+        setAccessTokenCookie(response, user.getAccessToken());
         return ResponseEntity.status(HttpStatus.CREATED).body(user);
-
     }
 
-    /**
-     * Refreshes the access token using a provided refresh token.
-     * Issues a new access token and refresh token pair.
-     *
-     * @param refreshRequest DTO containing the refresh token string.
-     * @return A {@link ResponseEntity} with {@link AuthResponseDto} containing new tokens on success (HTTP 200 OK)
-     *         or an error message on failure (HTTP 400 Bad Request or 403 Forbidden).
-     */
-    @Operation(summary = "Refresh access token",
-            description = "Uses a refresh token to obtain a new access token and refresh token pair.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Tokens refreshed successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = AuthResponseDto.class))),
-            @ApiResponse(responseCode = "400", description = "Refresh token is missing",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = String.class, example = "Refresh token is missing."))),
-            @ApiResponse(responseCode = "403", description = "Invalid or expired refresh token",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = String.class, example = "Invalid or expired refresh token.")))
-    })
+    @Operation(summary = "Refresh access token")
     @PostMapping("/refresh-token")
-    public ResponseEntity<?> refreshToken(@Valid @RequestBody RefreshRequest refreshRequest) {
+    public ResponseEntity<?> refreshToken(@Valid @RequestBody RefreshRequest refreshRequest, HttpServletResponse response) {
         String refreshToken = refreshRequest.getRefreshToken();
         if (refreshToken == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         }
         AuthResponseDto authResponse = authService.refreshAccessToken(refreshToken);
+        setAccessTokenCookie(response, authResponse.getAccessToken());
         return ResponseEntity.ok(authResponse);
     }
 
+    // НОВЫЙ МЕТОД ДЛЯ ВЫХОДА
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse response) {
+        Cookie cookie = new Cookie("accessToken", null);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(false);
+        cookie.setPath("/");
+        cookie.setMaxAge(0); // Удаляем куку
+        response.addCookie(cookie);
+        return ResponseEntity.ok("Logged out successfully");
+    }
 }
