@@ -1,0 +1,7 @@
+com\example\bankcards\controller\auth\AuthControllerTest.class
+com\example\bankcards\service\admin\AdminUserServiceTest.class
+com\example\bankcards\controller\user\UserCardControllerTest.class
+com\example\bankcards\service\AuthServiceTest.class
+com\example\bankcards\controller\admin\AdminUserControllerTest.class
+com\example\bankcards\controller\user\TransferControllerTest.class
+com\example\bankcards\controller\admin\AdminCardControllerTest.class

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Bank Admin • Cyber Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #0a0a0a;
+            --card-bg: #111;
+            --border-color: #222;
+            --text-main: #e0e0e0;
+            --neon-accent: #ffb700;
+        }
+        body { background: var(--bg-dark); color: var(--text-main); font-family: 'Inter', sans-serif; }
+
+        .navbar-custom { background: #000; border-bottom: 1px solid var(--border-color); }
+        .nav-link { color: #888; transition: 0.3s; cursor: pointer; }
+        .nav-link.active { color: var(--neon-accent); font-weight: bold; background: rgba(255,183,0,0.1); border-radius: 6px; }
+        .nav-link:hover { color: #fff; }
+
+        /* Карточки и таблицы */
+        .card-custom { background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 12px; }
+        .table-custom { --bs-table-bg: transparent; --bs-table-color: #ccc; --bs-table-border-color: var(--border-color); }
+        .table-custom th { color: #666; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
+        .table-custom td { vertical-align: middle; }
+
+        /* Модальные окна и формы */
+        .modal-dark { background: #1a1a1a; color: white; border: 1px solid #333; }
+        .form-control-dark, .form-select { background: #000 !important; border: 1px solid #333 !important; color: white !important; }
+        .form-control-dark:focus, .form-select:focus { border-color: var(--neon-accent) !important; box-shadow: 0 0 5px rgba(255,183,0,0.3) !important; }
+        .btn-close { filter: invert(1); }
+
+        /* 3D Card */
+        .credit-card-wrap { perspective: 1000px; width: 350px; height: 220px; margin: 0 auto; cursor: pointer; }
+        .credit-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s; transform-style: preserve-3d; }
+        .credit-card-wrap.flipped .credit-card-inner { transform: rotateY(180deg); }
+        .credit-card-front, .credit-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); color: white; background: #222; border: 1px solid #333; }
+        .credit-card-front { padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+        .credit-card-back { transform: rotateY(180deg); padding-top: 20px; }
+        .card-number { font-family: 'Space Mono', monospace; font-size: 1.25rem; letter-spacing: 2px; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-custom px-4 py-3">
+    <div class="d-flex align-items-center gap-4">
+        <a class="navbar-brand fw-bold text-white" href="#"><i class="fas fa-shield-alt me-2 text-warning"></i>ADMIN CORE</a>
+        <ul class="nav gap-2">
+            <li class="nav-item"><a class="nav-link active px-3" onclick="switchTab('cards')" id="tab-cards">CARDS</a></li>
+            <li class="nav-item"><a class="nav-link px-3 position-relative" onclick="switchTab('tickets')" id="tab-tickets">
+                TICKETS <span id="ticketBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none">0</span>
+            </a></li>
+        </ul>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-warning btn-sm fw-bold" onclick="openCreateModal()"><i class="fas fa-plus me-1"></i> NEW CARD</button>
+        <button onclick="logout()" class="btn btn-outline-secondary btn-sm"><i class="fas fa-sign-out-alt"></i></button>
+    </div>
+</nav>
+
+<div class="container mt-4">
+
+    <!-- Вкладка КАРТЫ -->
+    <div id="section-cards">
+        <div id="requestsSection" class="mb-4 d-none">
+            <div class="card card-custom border-warning mb-4">
+                <div class="card-header bg-warning text-dark fw-bold border-0">ATTENTION REQUIRED</div>
+                <div class="card-body p-0">
+                    <table class="table table-custom mb-0 align-middle">
+                        <thead class="bg-dark"><tr><th class="ps-4">USER</th><th>CARD</th><th>REQUEST</th><th class="text-end pe-4">ACTION</th></tr></thead>
+                        <tbody id="requestsTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-custom shadow-lg">
+            <div class="card-body p-0">
+                <table class="table table-custom table-hover mb-0 align-middle">
+                    <thead>
+                    <tr><th class="ps-4">ID</th><th>USER</th><th>NUMBER</th><th>BALANCE (BYN)</th><th>STATUS</th><th class="text-end pe-4">ACTIONS</th></tr>
+                    </thead>
+                    <tbody id="cardsTable"><tr><td colspan="6" class="text-center p-5 text-muted">Loading Database...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="mt-3 text-end"><button class="btn btn-dark btn-sm text-muted" onclick="loadCards()">Refresh Data</button></div>
+    </div>
+
+    <!-- Вкладка ТИКЕТЫ -->
+    <div id="section-tickets" class="d-none">
+        <h4 class="mb-4 text-white">Support Tickets</h4>
+        <div class="row g-4" id="ticketsGrid"><div class="col-12 text-center text-muted">No open tickets</div></div>
+    </div>
+</div>
+
+<!-- Modals -->
+<div class="modal fade" id="createCardModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content modal-dark"><div class="modal-header border-secondary"><h5 class="modal-title">Issue New Card</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="createCardForm"><div class="mb-3"><label class="text-muted small">User</label><select id="userIdSelect" class="form-select" required></select></div><div class="mb-3"><label class="text-muted small">Card Number</label><div class="input-group"><input type="text" id="newCardNumber" class="form-control form-control-dark font-monospace" maxlength="16"><button class="btn btn-outline-secondary" type="button" onclick="generateRandomCardNumber()"><i class="fas fa-random"></i></button></div></div><div class="mb-3"><label class="text-muted small">Card Holder</label><input type="text" id="newCardHolder" class="form-control form-control-dark text-uppercase"></div><input type="hidden" id="realExpiryDate"><input type="hidden" id="newBalance" value="0"></form></div><div class="modal-footer border-secondary"><button class="btn btn-warning w-100 fw-bold" onclick="submitCreateCard()">CREATE CARD</button></div></div></div></div>
+
+<div class="modal fade" id="balanceModal" tabindex="-1"><div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content modal-dark"><div class="modal-header border-0"><h5 class="modal-title fs-6 text-muted" id="balanceModalTitle">Operation</h5><button class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="hidden" id="balanceCardId"><input type="hidden" id="balanceAction"><div class="input-group mb-3"><span class="input-group-text border-0 bg-dark text-muted">BYN</span><input type="number" id="balanceAmount" class="form-control form-control-dark fw-bold fs-4" placeholder="0.00"></div><button class="btn btn-primary w-100" onclick="submitBalanceChange()">EXECUTE</button></div></div></div></div>
+
+<div class="modal fade" id="successCardModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content bg-transparent border-0"><div class="modal-body"><div class="credit-card-wrap" onclick="this.classList.toggle('flipped')"><div class="credit-card-inner"><div class="credit-card-front"><div class="d-flex justify-content-between align-items-center"><div style="width:40px;height:30px;background:#d4af37;border-radius:4px;"></div><i class="fas fa-wifi"></i></div><div class="card-number mt-4" id="successCardNumber">####</div><div class="mt-auto d-flex justify-content-between"><div class="card-holder" id="successCardHolder">NAME</div><div class="card-expiry" id="successCardExpiry">MM/YY</div></div></div><div class="credit-card-back"><div style="background:#000;height:40px;width:100%;margin-top:20px;"></div><div style="background:#fff;color:#000;width:80%;margin:10px auto;text-align:right;padding-right:10px;" id="successCardCvv">000</div></div></div></div><div class="text-center mt-3"><button class="btn btn-outline-light rounded-pill px-4" data-bs-dismiss="modal">Close</button></div></div></div></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let createModal, successModal, balanceModal;
+    document.addEventListener('DOMContentLoaded', () => {
+        createModal = new bootstrap.Modal(document.getElementById('createCardModal'));
+        successModal = new bootstrap.Modal(document.getElementById('successCardModal'));
+        balanceModal = new bootstrap.Modal(document.getElementById('balanceModal'));
+        loadCards(); loadTickets();
+    });
+
+    function switchTab(tab) {
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        document.getElementById('section-cards').classList.add('d-none');
+        document.getElementById('section-tickets').classList.add('d-none');
+        document.getElementById('section-' + tab).classList.remove('d-none');
+        if(tab === 'cards') loadCards();
+        if(tab === 'tickets') loadTickets();
+    }
+
+    async function loadCards() {
+        try {
+            const response = await fetch('/api/admin/cards?page=0&size=50');
+            if (response.status === 401) { window.location.href = '/login'; return; }
+            const data = await response.json();
+            const tbody = document.getElementById('cardsTable');
+            const reqBody = document.getElementById('requestsTable');
+            const reqSection = document.getElementById('requestsSection');
+            tbody.innerHTML = ''; reqBody.innerHTML = ''; let hasRequests = false;
+
+            data.content.forEach(card => {
+                if(card.cardStatus.includes('PENDING')) {
+                    hasRequests = true;
+                    reqBody.innerHTML += `<tr><td class="ps-4 fw-bold">${card.username}</td><td class="font-monospace text-muted">${card.cardNumber}</td><td><span class="badge bg-warning text-dark">${card.cardStatus}</span></td><td class="text-end pe-4"><button class="btn btn-sm btn-success me-1" onclick="${card.cardStatus==='PENDING_BLOCK'?'approveBlock':'approveUnblock'}(${card.id})">YES</button><button class="btn btn-sm btn-outline-light" onclick="declineRequest(${card.id})">NO</button></td></tr>`;
+                }
+                let statusColor = card.cardStatus === 'ACTIVE' ? 'text-success' : 'text-danger';
+                tbody.innerHTML += `
+                    <tr><td class="ps-4 text-muted">#${card.id}</td><td>${card.username}</td><td class="font-monospace text-white">${card.cardNumber}</td><td class="fw-bold text-white">${card.balance.toFixed(2)}</td><td class="${statusColor} fw-bold">${card.cardStatus}</td>
+                    <td class="text-end pe-4"><div class="btn-group btn-group-sm"><button class="btn btn-outline-secondary" onclick="openBalanceModal(${card.id}, 'deposit')">+</button><button class="btn btn-outline-secondary" onclick="openBalanceModal(${card.id}, 'withdraw')">-</button><button class="btn btn-outline-danger" onclick="deleteCard(${card.id})"><i class="fas fa-trash"></i></button>${card.cardStatus==='ACTIVE' ? `<button class="btn btn-outline-warning" onclick="blockCard(${card.id})"><i class="fas fa-lock"></i></button>` : ''}${card.cardStatus==='BLOCKED' ? `<button class="btn btn-outline-success" onclick="activateCard(${card.id})"><i class="fas fa-unlock"></i></button>` : ''}</div></td></tr>`;
+            });
+            if(hasRequests) reqSection.classList.remove('d-none'); else reqSection.classList.add('d-none');
+        } catch (e) {}
+    }
+
+    async function loadTickets() {
+        try {
+            const res = await fetch('/api/admin/tickets/open');
+            const tickets = await res.json();
+            const grid = document.getElementById('ticketsGrid');
+            const badge = document.getElementById('ticketBadge');
+            if(tickets.length > 0) { badge.innerText = tickets.length; badge.classList.remove('d-none'); } else { badge.classList.add('d-none'); }
+            grid.innerHTML = '';
+            if(tickets.length === 0) { grid.innerHTML = '<div class="col-12 text-center text-muted py-5">No active tickets</div>'; return; }
+            tickets.forEach(t => {
+                let btn = t.status === 'OPEN' ? `<button class="btn btn-warning btn-sm w-100" onclick="assignTicket(${t.id})">Take Ticket</button>` : `<button class="btn btn-success btn-sm w-100" onclick="closeTicket(${t.id})">Close Ticket</button>`;
+                grid.innerHTML += `<div class="col-md-4"><div class="card card-custom p-3 border-secondary"><div class="d-flex justify-content-between mb-2"><span class="badge bg-secondary">${t.status}</span><small class="text-muted">${t.createdByUsername}</small></div><h6 class="fw-bold text-white">${t.subject}</h6><p class="small text-muted bg-dark p-2 rounded">${t.description}</p>${btn}</div></div>`;
+            });
+        } catch(e) {}
+    }
+
+    // Reuse logic (functions are same as before)
+    async function assignTicket(id) { if(confirm('Take ticket?')) { await fetch(`/api/admin/tickets/${id}/assign`, { method:'POST' }); loadTickets(); } }
+    async function closeTicket(id) { if(confirm('Close ticket?')) { await fetch(`/api/admin/tickets/${id}/close`, { method:'POST' }); loadTickets(); } }
+    async function approveBlock(id) { await fetch(`/api/admin/cards/${id}/approve-block`, { method: 'POST' }); loadCards(); }
+    async function approveUnblock(id) { await fetch(`/api/admin/cards/${id}/approve-unblock`, { method: 'POST' }); loadCards(); }
+    async function declineRequest(id) { await fetch(`/api/admin/cards/${id}/decline`, { method: 'POST' }); loadCards(); }
+    async function blockCard(id) { if(confirm('Block?')) await fetch(`/api/admin/cards/${id}/block`, { method: 'POST' }); loadCards(); }
+    async function activateCard(id) { await fetch(`/api/admin/cards/${id}/activate`, { method: 'POST' }); loadCards(); }
+    async function deleteCard(id) { if(confirm('Delete?')) { await fetch(`/api/admin/cards/${id}`, { method: 'DELETE' }); loadCards(); }}
+    function openBalanceModal(id, action) { document.getElementById('balanceCardId').value=id; document.getElementById('balanceAction').value=action; balanceModal.show(); }
+    async function submitBalanceChange() { const id=document.getElementById('balanceCardId').value; const act=document.getElementById('balanceAction').value; const amt=document.getElementById('balanceAmount').value; await fetch(`/api/admin/cards/${id}/${act}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:parseFloat(amt)})}); balanceModal.hide(); loadCards(); }
+    async function openCreateModal() { const s=document.getElementById('userIdSelect'); s.innerHTML='<option>Loading...</option>'; document.getElementById('newCardNumber').value=''; const r=await fetch('/api/admin/users'); const u=await r.json(); s.innerHTML='<option disabled selected>Select User</option>'; u.forEach(x=>s.innerHTML+=`<option value="${x.id}">${x.username}</option>`); createModal.show(); }
+    function generateRandomCardNumber() { let p=Math.random()>0.5?"4000":"5100"; let r=""; for(let i=0;i<11;i++) r+=Math.floor(Math.random()*10); let n=p+r; let s=0,d=true; for(let i=n.length-1;i>=0;i--){let x=parseInt(n.charAt(i)); if(d){x*=2;if(x>9)x-=9;}s+=x;d=!d;} document.getElementById('newCardNumber').value=n+((10-(s%10))%10); }
+    async function submitCreateCard() { const u=document.getElementById('userIdSelect').value; const n=document.getElementById('newCardNumber').value; const h=document.getElementById('newCardHolder').value; const d=new Date(); d.setFullYear(d.getFullYear()+5); const res=await fetch('/api/admin/cards',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:parseInt(u),cardNumber:n,cardHolder:h.toUpperCase(),expiryDate:d.toISOString().split('T')[0],balance:0})}); if(res.ok){ createModal.hide(); loadCards(); document.getElementById('successCardNumber').innerText=n; document.getElementById('successCardHolder').innerText=h.toUpperCase(); successModal.show(); } }
+    async function logout() { await fetch('/api/auth/logout', { method: 'POST' }); window.location.href = '/login'; }
+</script>
+</body>
+</html>
